@@ -1,8 +1,5 @@
 # ApiFox 接口测试文档 — springboot_01_marathon
 
-> 项目路径：`C:\yuan\code1\springboot_lib\springboot_01_marathon`
-> 整理日期：2026-10-10
-> **所有响应示例均为真实调用抓取，非文档假设**
 
 ---
 
