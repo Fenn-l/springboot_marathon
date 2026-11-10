@@ -1,8 +1,5 @@
 # ApiFox 全局 Token 配置（配一次，之后不用再手输）
 
-> 适用工程：`C:\yuan\code1\springboot_lib\springboot_01_marathon`
-> 整理日期：2026-10-11
-
 ---
 
 ## 为什么要配
