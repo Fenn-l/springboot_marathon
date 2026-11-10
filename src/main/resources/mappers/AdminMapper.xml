@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ape.springboot_01_marathon.dao.AdminMapper">
+
+    <!--
+      BCrypt 密文每次都不同，不能在 SQL 里做 password 相等比较，
+      所以这里只按 username 查，密码校验交给 Java 侧的 encoder.matches()
+    -->
+    <select id="selectByUsername" resultType="com.ape.springboot_01_marathon.pojo.Admin">
+        SELECT id, username, password, admin_name, create_time
+        FROM admin
+        WHERE username = #{username}
+    </select>
+
+    <update id="updateLoginTime">
+        UPDATE admin SET create_time = NOW() WHERE id = #{id}
+    </update>
+
+</mapper>

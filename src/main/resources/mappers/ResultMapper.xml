@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ape.springboot_01_marathon.dao.ResultMapper">
+
+    <!--
+      注意表别名：runner 的别名是 rn，不是 r。
+      这里原本写成 r.name，而 joinFrom 里只有 res / reg / rn 三个别名，没有 r，
+      导致 SQL 报 Unknown column 'r.name'，三个排名接口全部 500「系统繁忙」。
+    -->
+    <sql id="rankColumns">
+        rn.name AS name,
+        reg.bib_number AS bib_number,
+        rn.gender AS gender,
+        res.net_time AS net_time,
+        TIMESTAMPDIFF(YEAR, rn.birth_date, res.finish_time) AS age
+    </sql>
+
+    <sql id="joinFrom">
+        FROM `result` res
+        INNER JOIN registration reg ON res.registration_id = reg.id
+        INNER JOIN runner rn ON reg.runner_id = rn.id
+    </sql>
+
+    <insert id="insert" parameterType="com.ape.springboot_01_marathon.pojo.ResultRecord"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `result` (registration_id, chip_time, net_time, finish_status, finish_time)
+        VALUES (#{registrationId}, #{chipTime}, #{netTime}, #{finishStatus}, #{finishTime})
+    </insert>
+
+    <update id="update" parameterType="com.ape.springboot_01_marathon.pojo.ResultRecord">
+        UPDATE `result`
+        <set>
+            <if test="chipTime != null">chip_time = #{chipTime},</if>
+            <if test="netTime != null">net_time = #{netTime},</if>
+            <if test="finishStatus != null">finish_status = #{finishStatus},</if>
+            <if test="finishTime != null">finish_time = #{finishTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM `result` WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" resultType="com.ape.springboot_01_marathon.pojo.ResultRecord">
+        SELECT * FROM `result` WHERE id = #{id}
+    </select>
+
+    <select id="existsByRegistrationId" resultType="int">
+        SELECT COUNT(*) FROM `result` WHERE registration_id = #{registrationId}
+    </select>
+
+    <select id="selectPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.RegistrationQuery"
+            resultType="com.ape.springboot_01_marathon.pojo.vo.ResultVO">
+        SELECT res.id, res.registration_id, res.chip_time, res.net_time,
+        res.finish_status, res.finish_time,
+        rn.name AS runner_name, reg.bib_number AS bib_number,
+        reg.event_id AS event_id, e.status AS event_status
+        FROM `result` res
+        INNER JOIN registration reg ON res.registration_id = reg.id
+        INNER JOIN runner rn ON reg.runner_id = rn.id
+        INNER JOIN marathon_event e ON reg.event_id = e.id
+        <where>
+            <if test="eventId != null">
+                AND reg.event_id = #{eventId}
+            </if>
+        </where>
+        ORDER BY res.id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.RegistrationQuery"
+            resultType="long">
+        SELECT COUNT(*)
+        FROM `result` res
+        INNER JOIN registration reg ON res.registration_id = reg.id
+        <where>
+            <if test="eventId != null">
+                AND reg.event_id = #{eventId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 总排名：只取完赛，按净成绩升序，名次在 Java 补 -->
+    <select id="selectRanking" resultType="com.ape.springboot_01_marathon.pojo.vo.RankVO">
+        SELECT <include refid="rankColumns"/>
+        <include refid="joinFrom"/>
+        WHERE reg.event_id = #{eventId} AND res.finish_status = 1
+        ORDER BY res.net_time ASC, reg.bib_number ASC
+    </select>
+
+    <select id="selectRankingByGender" resultType="com.ape.springboot_01_marathon.pojo.vo.RankVO">
+        SELECT <include refid="rankColumns"/>
+        <include refid="joinFrom"/>
+        WHERE reg.event_id = #{eventId}
+        AND res.finish_status = 1
+        AND rn.gender = #{gender}
+        ORDER BY res.net_time ASC, reg.bib_number ASC
+    </select>
+
+    <!-- 年龄分组：以完赛时间当时的年龄为准，SQL 里算好交给 Java 分桶 -->
+    <select id="selectRankingByAgeGroup" resultType="com.ape.springboot_01_marathon.pojo.vo.RankVO">
+        SELECT <include refid="rankColumns"/>
+        <include refid="joinFrom"/>
+        WHERE reg.event_id = #{eventId} AND res.finish_status = 1
+        ORDER BY res.net_time ASC, reg.bib_number ASC
+    </select>
+
+    <select id="countByFinishStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM `result` res
+                 INNER JOIN registration reg ON res.registration_id = reg.id
+        WHERE reg.event_id = #{eventId} AND res.finish_status = #{finishStatus}
+    </select>
+
+    <select id="avgNetTime" resultType="double">
+        SELECT IFNULL(AVG(res.net_time), 0)
+        FROM `result` res
+                 INNER JOIN registration reg ON res.registration_id = reg.id
+        WHERE reg.event_id = #{eventId} AND res.finish_status = 1
+    </select>
+
+    <!--
+      C 端「我的成绩」：按选手 id 查全部成绩。
+      联 registration 拿号码布，联 marathon_event 拿赛事名与日期。
+    -->
+    <select id="selectByRunnerId"
+            resultType="com.ape.springboot_01_marathon.pojo.vo.MyResultVO">
+        SELECT res.id,
+               res.registration_id,
+               reg.bib_number,
+               res.chip_time,
+               res.net_time,
+               res.finish_status,
+               res.finish_time,
+               e.id         AS event_id,
+               e.event_name,
+               e.event_date
+        FROM `result` res
+                 INNER JOIN registration reg ON res.registration_id = reg.id
+                 INNER JOIN marathon_event e ON reg.event_id = e.id
+        WHERE reg.runner_id = #{runnerId}
+        ORDER BY e.event_date DESC, res.id DESC
+    </select>
+
+    <!-- 完赛证书数据：按报名 id 查成绩 + 赛事信息 -->
+    <select id="selectForCertificate"
+            resultType="com.ape.springboot_01_marathon.pojo.vo.MyResultVO">
+        SELECT res.id,
+               res.registration_id,
+               reg.bib_number,
+               res.chip_time,
+               res.net_time,
+               res.finish_status,
+               res.finish_time,
+               e.id         AS event_id,
+               e.event_name,
+               e.event_date
+        FROM `result` res
+                 INNER JOIN registration reg ON res.registration_id = reg.id
+                 INNER JOIN marathon_event e ON reg.event_id = e.id
+        WHERE reg.id = #{registrationId}
+    </select>
+
+    <!--
+      B 端：某赛事可签发证书的名单（只取已完赛的）。
+      rank 用相关子查询算，排序口径与 ResultMapper.selectRanking 一致：
+      净成绩升序，净成绩相同时按号码布升序。所以同成绩的选手名次不会并列。
+      注意：rank 是 MySQL 8 保留字，必须加反引号。
+      result 是保留字，要加反引号。
+    -->
+    <select id="selectCertificateList"
+            resultType="com.ape.springboot_01_marathon.pojo.vo.MyResultVO">
+        SELECT res.id,
+               res.registration_id,
+               reg.bib_number,
+               res.chip_time,
+               res.net_time,
+               res.finish_status,
+               res.finish_time,
+               res.cert_issued,
+               rn.name AS runner_name,
+               e.id         AS event_id,
+               e.event_name,
+               e.event_date,
+               (SELECT COUNT(*) + 1
+                FROM `result` r3
+                INNER JOIN registration reg3 ON r3.registration_id = reg3.id
+                WHERE reg3.event_id = reg.event_id
+                  AND r3.finish_status = 1
+                  AND (r3.net_time &lt; res.net_time
+                       OR (r3.net_time = res.net_time
+                           AND reg3.bib_number &lt; reg.bib_number))) AS `rank`
+        FROM `result` res
+                 INNER JOIN registration reg ON res.registration_id = reg.id
+                 INNER JOIN marathon_event e ON reg.event_id = e.id
+                 INNER JOIN runner rn ON reg.runner_id = rn.id
+        WHERE reg.event_id = #{eventId} AND res.finish_status = 1
+        ORDER BY res.net_time ASC, reg.bib_number ASC
+    </select>
+
+    <!--
+      B 端：批量签发证书，只签已完赛且尚未签发的。
+      注意：不能写成 UPDATE result ... WHERE registration_id IN (SELECT ... FROM result ...)，
+      MySQL 会报 1093「You can't specify target table 'result' for update in FROM clause」
+      （更新目标表的同时又从它里面查）。
+      改成 JOIN registration 来定位，避开对 result 表的自引用。
+      result 是保留字，要加反引号。
+    -->
+    <update id="issueCertificates">
+        UPDATE `result` res
+        INNER JOIN registration reg ON res.registration_id = reg.id
+        SET res.cert_issued = NOW()
+        WHERE reg.event_id = #{eventId}
+          AND res.finish_status = 1
+          AND res.cert_issued IS NULL
+    </update>
+
+    <!-- 查某条报名的证书签发时间 -->
+    <select id="selectCertIssued" resultType="java.time.LocalDateTime">
+        SELECT cert_issued FROM `result` WHERE registration_id = #{registrationId}
+    </select>
+
+</mapper>

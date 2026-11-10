@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ape.springboot_01_marathon.dao.EventMapper">
+
+    <!-- 公共查询字段：remainQuota 在 SQL 里算出来 -->
+    <sql id="voColumns">
+        e.id, e.event_name, e.event_type, e.event_date, e.start_location,
+        e.distance_km, e.quota, e.registered_count, e.entry_fee, e.status, e.create_time,
+        (e.quota - e.registered_count) AS remain_quota
+    </sql>
+
+    <insert id="insert" parameterType="com.ape.springboot_01_marathon.pojo.MarathonEvent"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO marathon_event (event_name, event_type, event_date, start_location,
+                                    distance_km, quota, registered_count, entry_fee, status)
+        VALUES (#{eventName}, #{eventType}, #{eventDate}, #{startLocation},
+                #{distanceKm}, #{quota}, 0, #{entryFee}, #{status})
+    </insert>
+
+    <update id="update" parameterType="com.ape.springboot_01_marathon.pojo.MarathonEvent">
+        UPDATE marathon_event
+        <set>
+            <if test="eventName != null">event_name = #{eventName},</if>
+            <if test="eventType != null">event_type = #{eventType},</if>
+            <if test="eventDate != null">event_date = #{eventDate},</if>
+            <if test="startLocation != null">start_location = #{startLocation},</if>
+            <if test="distanceKm != null">distance_km = #{distanceKm},</if>
+            <if test="quota != null">quota = #{quota},</if>
+            <if test="entryFee != null">entry_fee = #{entryFee},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM marathon_event WHERE id = #{id}
+    </delete>
+
+    <!-- 动态条件，四个可选筛选 + 时间范围 -->
+    <select id="selectPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.EventQuery"
+            resultType="com.ape.springboot_01_marathon.pojo.vo.EventVO">
+        SELECT <include refid="voColumns"/>
+        FROM marathon_event e
+        <where>
+            <if test="eventName != null and eventName != ''">
+                AND e.event_name LIKE CONCAT('%', #{eventName}, '%')
+            </if>
+            <if test="eventType != null">
+                AND e.event_type = #{eventType}
+            </if>
+            <if test="status != null">
+                AND e.status = #{status}
+            </if>
+            <if test="startDate != null">
+                AND e.event_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND e.event_date &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY e.event_date DESC, e.id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.EventQuery"
+            resultType="long">
+        SELECT COUNT(*) FROM marathon_event e
+        <where>
+            <if test="eventName != null and eventName != ''">
+                AND e.event_name LIKE CONCAT('%', #{eventName}, '%')
+            </if>
+            <if test="eventType != null">
+                AND e.event_type = #{eventType}
+            </if>
+            <if test="status != null">
+                AND e.status = #{status}
+            </if>
+            <if test="startDate != null">
+                AND e.event_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND e.event_date &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectDetailById" resultType="com.ape.springboot_01_marathon.pojo.vo.EventVO">
+        SELECT <include refid="voColumns"/>
+        FROM marathon_event e
+        WHERE e.id = #{id}
+    </select>
+
+    <select id="selectById" resultType="com.ape.springboot_01_marathon.pojo.MarathonEvent">
+        SELECT * FROM marathon_event WHERE id = #{id}
+    </select>
+
+    <update id="increaseRegisteredCount">
+        UPDATE marathon_event SET registered_count = registered_count + 1
+        WHERE id = #{id} AND registered_count &lt; quota
+    </update>
+
+    <update id="decreaseRegisteredCount">
+        UPDATE marathon_event SET registered_count = registered_count - 1
+        WHERE id = #{id} AND registered_count &gt; 0
+    </update>
+
+    <!--
+      删除赛事前的「有效报名」检查：只数 status = 1。
+      取消报名已物理删除记录，口径与 RunnerMapper.countActiveRegistration 一致。
+    -->
+    <select id="countActiveRegistration" resultType="int">
+        SELECT COUNT(*) FROM registration
+        WHERE event_id = #{eventId} AND status = 1
+    </select>
+
+</mapper>

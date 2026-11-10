@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#16202c">
+    <title>Stride · 马拉松</title>
+    <link rel="stylesheet" href="/m/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8502a'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='19' font-weight='bold' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+    <script src="/vendor/vue.global.prod.js"></script>
+    <script>
+        if (!window.Vue) {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 21V4"/><path d="M4 4h13l-2.5 4.5L17 13H4z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 4h12v8a6 6 0 0 1-12 0z"/><path d="M6 6H4v2a4 4 0 0 0 4 4M18 6h2v2a4 4 0 0 1-4 4"/><path d="M12 18v4M8 22h8"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h5a4 4 0 0 0 0-8H9a4 4 0 0 1 0-8h6"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 9a3 3 0 0 1 0 6v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a3 3 0 0 1 0-6V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M13 5v2M13 11v2M13 17v2"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-medal" viewBox="0 0 24 24"><circle cx="12" cy="15" r="6"/><path d="m8.2 9.5-3-6.5h5l2 4.5M15.8 9.5l3-6.5h-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-check-c" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></symbol>
+    <symbol id="i-id" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8.5" cy="11" r="2.5"/><path d="M5 17c.6-1.8 2-2.8 3.5-2.8S11.4 15.2 12 17"/><path d="M15 9h4M15 13h4"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+</svg>
+
+<div id="app" v-cloak>
+
+    <!-- ==================== 登录 / 注册 ==================== -->
+    <div v-if="!logged" class="auth">
+        <div class="auth__hero">
+            <div class="auth__logo">
+                <span class="m">S</span>
+                <b>STRIDE</b>
+            </div>
+            <h2>找赛 · 报名 · 查成绩<br>一个 App 全搞定</h2>
+            <p>浏览赛事无需登录，报名和成绩查询才需要</p>
+        </div>
+        <div class="auth__body">
+            <div v-if="loginError" class="auth__err">
+                <svg class="icon sm" style="vertical-align:-3px"><use href="#i-alert"></use></svg>
+                {{ loginError }}
+            </div>
+
+            <!-- 登录 -->
+            <template v-if="!isRegister">
+                <label class="field">
+                    <span class="lbl">手机号</span>
+                    <input class="input" :class="{ invalid: errors.phone }" v-model.trim="loginForm.phone"
+                           type="tel" inputmode="numeric" maxlength="11" placeholder="11 位手机号">
+                    <span class="err" v-if="errors.phone">{{ errors.phone }}</span>
+                </label>
+                <label class="field">
+                    <span class="lbl">密码</span>
+                    <input class="input" :class="{ invalid: errors.password }" v-model="loginForm.password"
+                           type="password" placeholder="请输入密码">
+                    <span class="err" v-if="errors.password">{{ errors.password }}</span>
+                </label>
+                <button class="btn primary lg block" @click="doLogin" :disabled="busy">
+                    <span v-if="busy" class="spin"></span>
+                    {{ busy ? '登录中...' : '登录' }}
+                </button>
+                <p class="auth__switch">还没有账号？<button @click="switchAuth('register')">立即注册</button></p>
+            </template>
+
+            <!-- 注册 -->
+            <template v-else>
+                <label class="field">
+                    <span class="lbl">手机号 <i>*</i></span>
+                    <input class="input" :class="{ invalid: errors.phone }" v-model.trim="regForm.phone"
+                           type="tel" inputmode="numeric" maxlength="11" placeholder="11 位手机号">
+                    <span class="err" v-if="errors.phone">{{ errors.phone }}</span>
+                </label>
+                <label class="field">
+                    <span class="lbl">密码 <i>*</i></span>
+                    <input class="input" :class="{ invalid: errors.password }" v-model="regForm.password"
+                           type="password" placeholder="至少 6 位">
+                    <span class="err" v-if="errors.password">{{ errors.password }}</span>
+                </label>
+                <label class="field">
+                    <span class="lbl">姓名 <i>*</i></span>
+                    <input class="input" :class="{ invalid: errors.name }" v-model.trim="regForm.name" placeholder="真实姓名">
+                    <span class="err" v-if="errors.name">{{ errors.name }}</span>
+                </label>
+                <label class="field">
+                    <span class="lbl">性别 <i>*</i></span>
+                    <div class="radio-group">
+                        <label :class="{ on: regForm.gender === 1 }" @click="regForm.gender = 1">男</label>
+                        <label :class="{ on: regForm.gender === 2 }" @click="regForm.gender = 2">女</label>
+                    </div>
+                </label>
+                <label class="field">
+                    <span class="lbl">身份证号 <i>*</i></span>
+                    <input class="input mono" :class="{ invalid: errors.idCard }" v-model.trim="regForm.idCard"
+                           maxlength="18" placeholder="18 位身份证号">
+                    <span class="err" v-if="errors.idCard">{{ errors.idCard }}</span>
+                </label>
+                <label class="field">
+                    <span class="lbl">出生日期 <i>*</i></span>
+                    <input class="input" :class="{ invalid: errors.birthDate }" type="date" v-model="regForm.birthDate">
+                    <span class="err" v-if="errors.birthDate">{{ errors.birthDate }}</span>
+                    <span class="hint" v-else>满 16 周岁方可参赛</span>
+                </label>
+                <label class="field">
+                    <span class="lbl">紧急联系人 <i>*</i></span>
+                    <input class="input" :class="{ invalid: errors.emergencyContact }" v-model.trim="regForm.emergencyContact"
+                           placeholder="姓名,手机号">
+                    <span class="err" v-if="errors.emergencyContact">{{ errors.emergencyContact }}</span>
+                </label>
+                <button class="btn primary lg block" @click="doRegister" :disabled="busy">
+                    <span v-if="busy" class="spin"></span>
+                    {{ busy ? '注册中...' : '注册并登录' }}
+                </button>
+                <p class="auth__switch">已有账号？<button @click="switchAuth('login')">返回登录</button></p>
+            </template>
+        </div>
+    </div>
+
+    <!-- ==================== 主应用 ==================== -->
+    <div v-else>
+        <!-- 顶栏 -->
+        <header class="topbar">
+            <button class="topbar__back" v-if="showBack" @click="goBack" aria-label="返回">
+                <svg class="icon"><use href="#i-back"></use></svg>
+            </button>
+            <div class="topbar__title">{{ pageTitle }}</div>
+            <div class="topbar__actions">
+                <button class="topbar__btn" @click="reloadCurrent" title="刷新">
+                    <svg class="icon"><use href="#i-refresh"></use></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="content">
+            <!-- ---------- 赛事广场 ---------- -->
+            <section class="page" :class="{ on: view === 'events' }">
+                <div class="filters">
+                    <button class="chip" :class="{ on: filterType === null }" @click="filterType = null">全部</button>
+                    <button class="chip" :class="{ on: filterType === 1 }" @click="filterType = 1">全程马拉松</button>
+                    <button class="chip" :class="{ on: filterType === 2 }" @click="filterType = 2">半程马拉松</button>
+                    <button class="chip" :class="{ on: filterType === 3 }" @click="filterType = 3">迷你跑</button>
+                </div>
+
+                <template v-if="loadingEvents">
+                    <div class="sk-card" v-for="i in 3" :key="'s'+i">
+                        <div class="skel" style="width:40%;height:11px;margin-bottom:10px"></div>
+                        <div class="skel" style="width:75%;height:16px;margin-bottom:12px"></div>
+                        <div class="skel" style="width:100%;height:5px"></div>
+                    </div>
+                </template>
+
+                <template v-else-if="filteredEvents.length">
+                    <article class="ecard" v-for="e in filteredEvents" :key="e.id" @click="openEvent(e.id)">
+                        <div class="ecard__top">
+                            <span class="tag" :class="eventTypeTag(e.eventType)">{{ EVENT_TYPE[e.eventType] }}</span>
+                            <span class="badge" :class="eventStatusBadge(e.status)">{{ EVENT_STATUS[e.status] }}</span>
+                            <span class="grow"></span>
+                            <span class="tag gray" v-if="e.daysLeft >= 0">还有 {{ e.daysLeft }} 天</span>
+                        </div>
+                        <h3>{{ e.eventName }}</h3>
+                        <div class="ecard__meta">
+                            <span><svg class="icon"><use href="#i-calendar"></use></svg>{{ e.eventDate }}</span>
+                            <span><svg class="icon"><use href="#i-map"></use></svg>{{ e.startLocation }}</span>
+                            <span><svg class="icon"><use href="#i-route"></use></svg>{{ e.distanceKm }} km</span>
+                        </div>
+                        <div class="ecard__quota">
+                            <div class="ecard__quotarow">
+                                <span>报名 {{ e.registeredCount }}/{{ e.quota }}</span>
+                                <b>余 {{ e.remainQuota }} 名额</b>
+                            </div>
+                            <div class="meter">
+                                <div class="meter__fill" :class="{ full: quotaPercent(e) >= 100 }" :style="{ width: quotaPercent(e) + '%' }"></div>
+                            </div>
+                        </div>
+                        <div class="ecard__foot">
+                            <span class="ecard__fee">¥{{ e.entryFee }}<small>报名费</small></span>
+                            <span class="tag green" v-if="e.registered">已报名</span>
+                            <span class="btn primary sm" style="padding:6px 14px;font-size:13px" v-else-if="e.status === 0">去报名</span>
+                            <span class="tag gray" v-else>报名已截止</span>
+                        </div>
+                    </article>
+                </template>
+
+                <div class="empty" v-else>
+                    <svg class="icon"><use href="#i-inbox"></use></svg>
+                    <p>暂时没有可报名的赛事</p>
+                    <small>组委会发布新赛事后会显示在这里</small>
+                </div>
+            </section>
+
+            <!-- ---------- 赛事详情 ---------- -->
+            <section class="page" :class="{ on: view === 'event' }">
+                <template v-if="event">
+                    <div class="card" style="padding:16px 14px">
+                        <div class="row" style="gap:8px;margin-bottom:9px">
+                            <span class="tag" :class="eventTypeTag(event.eventType)">{{ EVENT_TYPE[event.eventType] }}</span>
+                            <span class="badge" :class="eventStatusBadge(event.status)">{{ EVENT_STATUS[event.status] }}</span>
+                        </div>
+                        <h2 style="font-size:19px;line-height:1.35;margin-bottom:12px">{{ event.eventName }}</h2>
+                        <dl class="deflist">
+                            <div><dt>比赛日期</dt><dd class="mono">{{ event.eventDate }}</dd></div>
+                            <div><dt>起点</dt><dd>{{ event.startLocation }}</dd></div>
+                            <div><dt>距离</dt><dd class="mono">{{ event.distanceKm }} km</dd></div>
+                            <div><dt>报名费</dt><dd class="mono">¥{{ event.entryFee }}</dd></div>
+                            <div><dt>名额</dt><dd class="mono">{{ event.registeredCount }} / {{ event.quota }} 人</dd></div>
+                            <div><dt>剩余</dt><dd class="mono" :class="{ 'danger': event.remainQuota <= 0 }">{{ event.remainQuota }} 人</dd></div>
+                        </dl>
+                    </div>
+
+                    <div class="card" style="margin-top:12px">
+                        <div style="padding:14px">
+                            <div class="row between" style="margin-bottom:8px">
+                                <span style="font-size:13px;color:var(--ink-3)">名额占用</span>
+                                <b class="num">{{ quotaPercent(event) }}%</b>
+                            </div>
+                            <div class="meter">
+                                <div class="meter__fill" :class="{ full: quotaPercent(event) >= 100 }" :style="{ width: quotaPercent(event) + '%' }"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top:12px">
+                        <div style="padding:14px">
+                            <div style="font-size:13px;font-weight:650;margin-bottom:8px">赛事说明</div>
+                            <p style="font-size:13px;color:var(--ink-3);line-height:1.65">
+                                请于比赛当日 07:00 前抵达起点，凭<b>号码布</b>与本人身份证件完成检录。
+                                报名成功后可在「我的报名」中查看号码布与报名状态。
+                            </p>
+                        </div>
+                    </div>
+                </template>
+                <div class="empty" v-else>
+                    <svg class="icon"><use href="#i-flag"></use></svg>
+                    <p>赛事加载中</p>
+                </div>
+            </section>
+
+            <!-- ---------- 我的报名 ---------- -->
+            <section class="page" :class="{ on: view === 'orders' }">
+                <template v-if="loadingOrders">
+                    <div class="sk-card" v-for="i in 2" :key="'so'+i">
+                        <div class="skel" style="width:60%;height:14px;margin-bottom:10px"></div>
+                        <div class="skel" style="width:90%;height:11px"></div>
+                    </div>
+                </template>
+
+                <template v-else-if="myRegs.length">
+                    <div class="card" v-for="r in myRegs" :key="r.id" style="margin-bottom:12px">
+                        <div style="padding:14px 14px 12px">
+                            <div class="row between" style="gap:8px;margin-bottom:8px">
+                                <span class="tag" :class="eventTypeTag(r.eventType)">{{ EVENT_TYPE[r.eventType] }}</span>
+                                <span class="grow"></span>
+                                <span class="badge" :class="regPayBadge(r.payStatus)">
+                                    {{ r.payStatus === 1 ? '已支付' : '待支付' }}
+                                </span>
+                                <span class="badge" v-if="r.checkedIn" style="background:var(--ok-soft);color:var(--ok)">已检录</span>
+                            </div>
+                            <h3 style="font-size:15.5px;line-height:1.4;margin-bottom:7px">{{ r.eventName }}</h3>
+                            <div class="ecard__meta">
+                                <span><svg class="icon"><use href="#i-calendar"></use></svg>{{ r.eventDate }}</span>
+                                <span><svg class="icon"><use href="#i-map"></use></svg>{{ r.startLocation }}</span>
+                            </div>
+                            <div v-if="r.result" style="margin-top:11px;padding:9px 11px;border-radius:10px;background:var(--gold-soft)">
+                                <div class="row between">
+                                    <span style="font-size:12.5px;color:#8a6712">
+                                        <svg class="icon sm" style="vertical-align:-3px"><use href="#i-medal"></use></svg>
+                                        {{ r.result.finishStatus === 1 ? '已完赛' : '未完赛' }}
+                                        <template v-if="r.result.rank">· 第 {{ r.result.rank }} 名</template>
+                                    </span>
+                                    <b class="mono" style="font-size:15px;color:#8a6712">{{ r.result.netTimeStr }}</b>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex;border-top:1px solid var(--line)">
+                            <button class="btn" style="flex:1;border:none;border-radius:0;padding:12px"
+                                    v-if="r.bibNumber" @click="openBib(r)">
+                                <svg class="icon sm"><use href="#i-ticket"></use></svg>号码布
+                            </button>
+                            <button class="btn" style="flex:1;border:none;border-radius:0;padding:12px"
+                                    v-if="r.result && r.result.finishStatus === 1" @click="openCert(r)">
+                                <svg class="icon sm"><use href="#i-medal"></use></svg>证书
+                            </button>
+                            <button class="btn" style="flex:1;border:none;border-radius:0;padding:12px;color:var(--bad)"
+                                    v-if="!r.result && r.status === 1" @click="askCancel(r)">
+                                取消报名
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="empty" v-else>
+                    <svg class="icon"><use href="#i-ticket"></use></svg>
+                    <p>还没有报名记录</p>
+                    <small>去「赛事」看看有什么可报名的比赛</small>
+                </div>
+            </section>
+
+            <!-- ---------- 号码布 ---------- -->
+            <section class="page" :class="{ on: view === 'bib' }">
+                <div class="bib" v-if="currentReg">
+                    <div class="bib__label">BIB NUMBER</div>
+                    <div class="bib__no">{{ currentReg.bibNumber || '待分配' }}</div>
+                    <div class="bib__event">{{ currentReg.eventName }}</div>
+                    <div class="bib__hint">{{ currentReg.eventDate }} · {{ currentReg.startLocation }}</div>
+                </div>
+                <div class="card" style="margin-top:14px">
+                    <div style="padding:14px">
+                        <div style="font-size:13px;font-weight:650;margin-bottom:9px">检录提示</div>
+                        <p style="font-size:13px;color:var(--ink-3);line-height:1.65">
+                            比赛当日请出示本号码布与本人身份证件。
+                            号码布已分配后不可自行修改，如有疑问请联系组委会。
+                        </p>
+                    </div>
+                </div>
+                <button class="btn block" style="margin-top:14px" @click="shareBib">
+                    <svg class="icon sm"><use href="#i-share"></use></svg>分享号码布
+                </button>
+            </section>
+
+            <!-- ---------- 成绩 ---------- -->
+            <section class="page" :class="{ on: view === 'results' }">
+                <div class="mini-stats" v-if="myResults.length">
+                    <div><span>参赛场次</span><b>{{ myResults.length }}</b></div>
+                    <div><span>完赛场次</span><b>{{ finishedCount }}</b></div>
+                    <div><span>平均净成绩</span><b>{{ avgNetTimeStr }}</b></div>
+                </div>
+
+                <template v-if="loadingResults">
+                    <div class="sk-card" v-for="i in 2" :key="'sr'+i">
+                        <div class="skel" style="width:55%;height:14px;margin-bottom:10px"></div>
+                        <div class="skel" style="width:85%;height:11px"></div>
+                    </div>
+                </template>
+
+                <template v-else-if="myResults.length">
+                    <div class="card" v-for="r in myResults" :key="r.id" style="margin-bottom:12px">
+                        <div style="padding:14px">
+                            <div class="row between" style="gap:8px;margin-bottom:8px">
+                                <span class="badge" :class="r.finishStatus === 1 ? 'ok' : (r.finishStatus === 3 ? 'bad' : 'warn')">
+                                    {{ FINISH_STATUS[r.finishStatus] }}
+                                </span>
+                                <span class="grow"></span>
+                                <span class="dim mono">号码布 {{ r.bibNumber || '—' }}</span>
+                            </div>
+                            <h3 style="font-size:15.5px;margin-bottom:10px">{{ r.eventName }}</h3>
+                            <div class="row" style="gap:20px">
+                                <div>
+                                    <span class="dim" style="display:block;font-size:11px">净成绩</span>
+                                    <b class="mono" style="font-size:20px">{{ r.netTimeStr || '—' }}</b>
+                                </div>
+                                <div>
+                                    <span class="dim" style="display:block;font-size:11px">枪声成绩</span>
+                                    <b class="mono" style="font-size:15px;color:var(--ink-2)">{{ formatSeconds(r.chipTime) }}</b>
+                                </div>
+                                <div v-if="r.rank">
+                                    <span class="dim" style="display:block;font-size:11px">名次</span>
+                                    <b class="num" style="font-size:20px">{{ r.rank }}</b>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="border-top:1px solid var(--line);display:flex">
+                            <button class="btn" style="flex:1;border:none;border-radius:0;padding:12px"
+                                    v-if="r.finishStatus === 1" @click="openCertByResult(r)">
+                                <svg class="icon sm"><use href="#i-medal"></use></svg>完赛证书
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="empty" v-else>
+                    <svg class="icon"><use href="#i-trophy"></use></svg>
+                    <p>还没有成绩</p>
+                    <small>比赛结束后，成绩会同步到这里</small>
+                </div>
+            </section>
+
+            <!-- ---------- 证书 ---------- -->
+            <section class="page" :class="{ on: view === 'cert' }">
+                <div class="cert" v-if="cert">
+                    <div class="cert__head">CERTIFICATE OF COMPLETION</div>
+                    <div class="cert__name">{{ cert.runnerName || memberName }}</div>
+                    <div class="cert__title">完赛证书</div>
+                    <div class="cert__grid">
+                        <div><span>赛事</span><b style="font-size:13px">{{ cert.eventName }}</b></div>
+                        <div><span>日期</span><b class="mono">{{ cert.eventDate }}</b></div>
+                        <div><span>号码布</span><b class="mono">{{ cert.bibNumber }}</b></div>
+                        <div><span>净成绩</span><b class="mono">{{ cert.netTimeStr }}</b></div>
+                        <div><span>枪声成绩</span><b class="mono">{{ formatSeconds(cert.chipTime) }}</b></div>
+                        <div><span>名次</span><b class="num">{{ cert.rank || '—' }}</b></div>
+                    </div>
+                    <div class="cert__event">{{ cert.eventName }}</div>
+                    <div class="dim" style="font-size:11.5px">完赛时间 {{ cert.finishTime || '—' }}</div>
+                    <div class="cert__seal">完赛<br>认证</div>
+                </div>
+                <button class="btn block" style="margin-top:16px" @click="printCert">
+                    <svg class="icon sm"><use href="#i-print"></use></svg>打印 / 保存证书
+                </button>
+            </section>
+
+            <!-- ---------- 排行榜 ---------- -->
+            <section class="page" :class="{ on: view === 'rank' }">
+                <div class="filters">
+                    <select class="chip" style="flex:1;min-width:150px" v-model.number="rankEventId" @change="loadRank">
+                        <option :value="null" disabled>选择赛事</option>
+                        <option v-for="e in allEvents" :key="e.id" :value="e.id">{{ e.eventName }}</option>
+                    </select>
+                </div>
+                <div class="filters">
+                    <button class="chip" :class="{ on: rankGroup === 'total' }" @click="rankGroup = 'total'">总排名</button>
+                    <button class="chip" :class="{ on: rankGroup === 'gender' }" @click="rankGroup = 'gender'">男女组</button>
+                    <button class="chip" :class="{ on: rankGroup === 'age' }" @click="rankGroup = 'age'">年龄组</button>
+                </div>
+
+                <div class="card" v-if="rankGroup === 'total'">
+                    <div class="rank-item" v-for="r in rankTotal" :key="'t'+r.rank">
+                        <span class="rank-no" :class="'m'+(r.rank<=3?r.rank:'')">{{ r.rank }}</span>
+                        <div class="grow">
+                            <div style="font-weight:600;font-size:14.5px">{{ r.name }}</div>
+                            <div class="dim mono">号码布 {{ r.bibNumber }}</div>
+                        </div>
+                        <b class="mono">{{ r.netTimeStr }}</b>
+                    </div>
+                    <div class="empty" v-if="!rankTotal.length">
+                        <svg class="icon"><use href="#i-trophy"></use></svg>
+                        <p>暂无完赛成绩</p>
+                    </div>
+                </div>
+
+                <div class="card" v-if="rankGroup === 'gender'">
+                    <div style="padding:12px 14px;border-bottom:1px solid var(--line);font-weight:650;font-size:14px">男子组</div>
+                    <div class="rank-item" v-for="r in rankMale" :key="'m'+r.rank">
+                        <span class="rank-no" :class="'m'+(r.rank<=3?r.rank:'')">{{ r.rank }}</span>
+                        <div class="grow">
+                            <div style="font-weight:600;font-size:14.5px">{{ r.name }}</div>
+                            <div class="dim mono">{{ r.bibNumber }}</div>
+                        </div>
+                        <b class="mono">{{ r.netTimeStr }}</b>
+                    </div>
+                    <div class="empty" v-if="!rankMale.length" style="padding:30px 20px"><p>暂无数据</p></div>
+                    <div style="padding:12px 14px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:650;font-size:14px">女子组</div>
+                    <div class="rank-item" v-for="r in rankFemale" :key="'f'+r.rank">
+                        <span class="rank-no" :class="'m'+(r.rank<=3?r.rank:'')">{{ r.rank }}</span>
+                        <div class="grow">
+                            <div style="font-weight:600;font-size:14.5px">{{ r.name }}</div>
+                            <div class="dim mono">{{ r.bibNumber }}</div>
+                        </div>
+                        <b class="mono">{{ r.netTimeStr }}</b>
+                    </div>
+                    <div class="empty" v-if="!rankFemale.length" style="padding:30px 20px"><p>暂无数据</p></div>
+                </div>
+
+                <div class="card" v-if="rankGroup === 'age'">
+                    <template v-for="g in ageGroups" :key="g.key">
+                        <div style="padding:12px 14px;border-bottom:1px solid var(--line);font-weight:650;font-size:14px">
+                            {{ g.label }} <span class="dim" style="font-weight:400">({{ g.list.length }} 人)</span>
+                        </div>
+                        <div class="rank-item" v-for="r in g.list" :key="g.key+r.rank">
+                            <span class="rank-no" :class="'m'+(r.rank<=3?r.rank:'')">{{ r.rank }}</span>
+                            <div class="grow">
+                                <div style="font-weight:600;font-size:14.5px">{{ r.name }}</div>
+                                <div class="dim">年龄 {{ r.age }}</div>
+                            </div>
+                            <b class="mono">{{ r.netTimeStr }}</b>
+                        </div>
+                    </template>
+                </div>
+            </section>
+
+            <!-- ---------- 我的 ---------- -->
+            <section class="page" :class="{ on: view === 'mine' }">
+                <div class="card">
+                    <div style="padding:16px 14px;display:flex;align-items:center;gap:12px">
+                        <div style="width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+                                    background:linear-gradient(135deg,var(--gold),#a97c1d);color:#fff;font-size:20px;font-weight:700">
+                            {{ memberInitial }}
+                        </div>
+                        <div class="grow">
+                            <div style="font-size:17px;font-weight:650">{{ memberName || '选手' }}</div>
+                            <div class="dim mono">{{ memberPhone }}</div>
+                        </div>
+                        <button class="topbar__btn" @click="openProfile">
+                            <svg class="icon"><use href="#i-edit"></use></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sec-title"><h3>我的参赛</h3></div>
+                <div class="card">
+                    <div class="item" @click="goOrders">
+                        <span style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)">
+                            <svg class="icon sm"><use href="#i-ticket"></use></svg>
+                        </span>
+                        <div class="item__body">
+                            <div class="item__title">我的报名</div>
+                            <div class="item__sub">{{ myRegs.length }} 条报名记录</div>
+                        </div>
+                        <svg class="icon sm item__arrow"><use href="#i-chev"></use></svg>
+                    </div>
+                    <div class="item" @click="goResults">
+                        <span style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--gold-soft);color:var(--gold)">
+                            <svg class="icon sm"><use href="#i-medal"></use></svg>
+                        </span>
+                        <div class="item__body">
+                            <div class="item__title">我的成绩</div>
+                            <div class="item__sub">{{ myResults.length }} 条完赛成绩</div>
+                        </div>
+                        <svg class="icon sm item__arrow"><use href="#i-chev"></use></svg>
+                    </div>
+                </div>
+
+                <div class="sec-title"><h3>账号</h3></div>
+                <div class="card">
+                    <div class="item" @click="openProfile">
+                        <span style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--info-soft);color:var(--info)">
+                            <svg class="icon sm"><use href="#i-user"></use></svg>
+                        </span>
+                        <div class="item__body">
+                            <div class="item__title">个人资料</div>
+                            <div class="item__sub">姓名、身份证、紧急联系人</div>
+                        </div>
+                        <svg class="icon sm item__arrow"><use href="#i-chev"></use></svg>
+                    </div>
+                    <div class="item" @click="openPassword">
+                        <span style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)">
+                            <svg class="icon sm"><use href="#i-lock"></use></svg>
+                        </span>
+                        <div class="item__body">
+                            <div class="item__title">修改密码</div>
+                            <div class="item__sub">定期更换密码，保障账号安全</div>
+                        </div>
+                        <svg class="icon sm item__arrow"><use href="#i-chev"></use></svg>
+                    </div>
+                    <div class="item" @click="askLogout">
+                        <span style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--bad-soft);color:var(--bad)">
+                            <svg class="icon sm"><use href="#i-logout"></use></svg>
+                        </span>
+                        <div class="item__body">
+                            <div class="item__title" style="color:var(--bad)">退出登录</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sec-title"><h3>更多</h3></div>
+                <div class="card">
+                    <div class="item" @click="goAdmin">
+                        <span style="width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:#eef0f3;color:var(--ink-2)">
+                            <svg class="icon sm"><use href="#i-shield"></use></svg>
+                        </span>
+                        <div class="item__body">
+                            <div class="item__title">赛事管理台</div>
+                            <div class="item__sub">组委会 / 管理员入口</div>
+                        </div>
+                        <svg class="icon sm item__arrow"><use href="#i-chev"></use></svg>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ---------- 资料编辑 ---------- -->
+            <section class="page" :class="{ on: view === 'profile' }">
+                <div class="card">
+                    <div class="form">
+                        <label class="field">
+                            <span class="lbl">姓名</span>
+                            <input class="input" v-model.trim="profileForm.name" placeholder="真实姓名">
+                        </label>
+                        <label class="field">
+                            <span class="lbl">性别</span>
+                            <div class="radio-group">
+                                <label :class="{ on: profileForm.gender === 1 }" @click="profileForm.gender = 1">男</label>
+                                <label :class="{ on: profileForm.gender === 2 }" @click="profileForm.gender = 2">女</label>
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">身份证号</span>
+                            <input class="input mono" :value="profileForm.idCard" disabled>
+                            <span class="hint">身份证号注册后不可自行修改，如需变更请联系组委会</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">手机号</span>
+                            <input class="input mono" :value="profileForm.phone" disabled>
+                            <span class="hint">手机号是登录账号，如需变更请联系组委会</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">出生日期</span>
+                            <input class="input mono" :value="profileForm.birthDate" disabled>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">紧急联系人</span>
+                            <input class="input" v-model.trim="profileForm.emergencyContact" placeholder="姓名,手机号">
+                        </label>
+                    </div>
+                </div>
+                <button class="btn primary lg block" style="margin-top:16px" @click="saveProfile" :disabled="busy">
+                    <span v-if="busy" class="spin"></span>
+                    保存
+                </button>
+            </section>
+
+            <!-- ---------- 修改密码 ---------- -->
+            <section class="page" :class="{ on: view === 'password' }">
+                <div class="card">
+                    <div class="form">
+                        <label class="field">
+                            <span class="lbl">原密码</span>
+                            <input class="input" type="password" v-model="pwdForm.oldPassword"
+                                   placeholder="请输入当前密码" autocomplete="current-password">
+                            <span class="hint err" v-if="pwdErrors.oldPassword">{{ pwdErrors.oldPassword }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">新密码</span>
+                            <input class="input" type="password" v-model="pwdForm.newPassword"
+                                   placeholder="6~30 位" autocomplete="new-password">
+                            <span class="hint err" v-if="pwdErrors.newPassword">{{ pwdErrors.newPassword }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">确认新密码</span>
+                            <input class="input" type="password" v-model="pwdForm.confirmPassword"
+                                   placeholder="再输入一次" autocomplete="new-password">
+                            <span class="hint err" v-if="pwdErrors.confirmPassword">{{ pwdErrors.confirmPassword }}</span>
+                        </label>
+                    </div>
+                </div>
+                <button class="btn primary lg block" style="margin-top:16px" @click="savePassword" :disabled="busy">
+                    <span v-if="busy" class="spin"></span>
+                    修改密码
+                </button>
+                <button class="btn lg block" style="margin-top:10px" @click="goBack">取消</button>
+            </section>
+        </main>
+
+        <!-- 详情页底部操作条 -->
+        <div class="actionbar" v-if="view === 'event' && event">
+            <div class="actionbar__info">
+                <b>¥{{ event.entryFee }}</b>
+                <span>剩余 {{ event.remainQuota }} 名额 · {{ EVENT_STATUS[event.status] }}</span>
+            </div>
+            <button class="btn primary lg" style="flex:none;min-width:130px"
+                    v-if="event.registered" @click="goOrders">
+                <svg class="icon sm"><use href="#i-check"></use></svg>已报名
+            </button>
+            <button class="btn primary lg" style="flex:none;min-width:130px"
+                    v-else-if="event.status === 0" @click="openRegister">
+                立即报名
+            </button>
+            <button class="btn lg" style="flex:none;min-width:130px" v-else-if="event.status === 1" disabled>报名已截止</button>
+            <button class="btn lg" style="flex:none;min-width:130px" v-else-if="event.status === 2" disabled>比赛进行中</button>
+            <button class="btn lg" style="flex:none;min-width:130px" v-else disabled>赛事已结束</button>
+        </div>
+
+        <!-- 底部 tab -->
+        <nav class="tabbar">
+            <button :class="{ on: view === 'events' }" @click="switchView('events')">
+                <svg class="icon"><use href="#i-flag"></use></svg>赛事
+            </button>
+            <button :class="{ on: view === 'orders' }" @click="switchView('orders')">
+                <svg class="icon"><use href="#i-ticket"></use></svg>报名
+                <i class="dot" v-if="myRegs.length"></i>
+            </button>
+            <button :class="{ on: view === 'rank' }" @click="switchView('rank')">
+                <svg class="icon"><use href="#i-trophy"></use></svg>排行
+            </button>
+            <button :class="{ on: view === 'results' }" @click="switchView('results')">
+                <svg class="icon"><use href="#i-medal"></use></svg>成绩
+            </button>
+            <button :class="{ on: view === 'mine' }" @click="switchView('mine')">
+                <svg class="icon"><use href="#i-user"></use></svg>我的
+            </button>
+        </nav>
+    </div>
+
+    <!-- ==================== 报名确认弹层 ==================== -->
+    <div v-if="registerSheet" class="sheet-mask" @click.self="registerSheet = false">
+        <div class="sheet">
+            <div class="sheet__title">确认报名</div>
+            <div class="sheet__text">{{ event.eventName }}
+{{ EVENT_TYPE[event.eventType] }} · {{ event.eventDate }}
+起点：{{ event.startLocation }}
+报名费：¥{{ event.entryFee }}</div>
+            <dl class="deflist" style="margin-bottom:16px">
+                <div><dt>姓名</dt><dd>{{ profile.name }}</dd></div>
+                <div><dt>身份证</dt><dd class="mono">{{ maskId(profile.idCard) }}</dd></div>
+                <div><dt>手机号</dt><dd class="mono">{{ maskPhone(profile.phone) }}</dd></div>
+                <div><dt>紧急联系人</dt><dd>{{ profile.emergencyContact }}</dd></div>
+            </dl>
+            <label class="checkline" style="margin-bottom:16px">
+                <input type="checkbox" v-model="agreed">
+                <span>我已阅读并同意赛事规程与免责声明，承诺身体健康、无心血管疾病等不适宜参赛的疾病</span>
+            </label>
+            <div class="sheet__actions">
+                <button class="btn" @click="registerSheet = false">再想想</button>
+                <button class="btn primary" @click="doRegisterEvent" :disabled="!agreed || busy">
+                    <span v-if="busy" class="spin"></span>
+                    确认报名
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 通用确认弹层 ==================== -->
+    <div v-if="confirmBox" class="sheet-mask" @click.self="confirmBox = null">
+        <div class="sheet">
+            <div class="sheet__title">{{ confirmBox.title }}</div>
+            <div class="sheet__text">{{ confirmBox.text }}</div>
+            <div class="sheet__actions">
+                <button class="btn" @click="confirmBox = null">取消</button>
+                <button class="btn primary" :style="confirmBox.danger ? 'background:var(--bad);border-color:var(--bad)' : ''"
+                        @click="runConfirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Toast ==================== -->
+    <div class="toasts">
+        <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
+            <svg class="icon sm"><use :href="t.type === 'err' ? '#i-alert' : '#i-check-c'"></use></svg>
+            <span>{{ t.text }}</span>
+        </div>
+    </div>
+
+</div>
+
+<script src="/m/app.js"></script>
+</body>
+</html>

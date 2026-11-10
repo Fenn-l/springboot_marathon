@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stride · 马拉松赛事管理台</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e8502a'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='19' font-weight='bold' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
+    <script src="/vendor/vue.global.prod.js"></script>
+    <script>
+        // 本地 vendor 缺失时回退到 CDN，保证离线也不白屏
+        if (!window.Vue) {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3.4.21/dist/vue.global.prod.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+
+<!-- ============ SVG 图标精灵 ============ -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 21V4"/><path d="M4 4h13l-2.5 4.5L17 13H4z"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 9a3 3 0 0 1 0 6v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a3 3 0 0 1 0-6V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z"/><path d="M13 5v2M13 11v2M13 17v2"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 4h12v8a6 6 0 0 1-12 0z"/><path d="M6 6H4v2a4 4 0 0 0 4 4M18 6h2v2a4 4 0 0 1-4 4"/><path d="M12 18v4M8 22h8"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-check-c" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></symbol>
+    <symbol id="i-id" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8.5" cy="11" r="2.5"/><path d="M5 17c.6-1.8 2-2.8 3.5-2.8S11.4 15.2 12 17"/><path d="M15 9h4M15 13h4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24"><path d="m7 4 0 16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4"/></symbol>
+    <symbol id="i-sort-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+    <symbol id="i-sort-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-medal" viewBox="0 0 24 24"><circle cx="12" cy="15" r="6"/><path d="m8.2 9.5-3-6.5h5l2 4.5M15.8 9.5l3-6.5h-5"/></symbol>
+    <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+    <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+</svg>
+
+<div id="app" v-cloak>
+
+    <!-- ==================== 登录 ==================== -->
+    <div v-if="!logged" class="login">
+        <section class="login__art">
+            <div class="art__brand">
+                <span class="mark">S</span>
+                <div>
+                    <b>STRIDE</b>
+                    <small>MARATHON OPERATIONS</small>
+                </div>
+            </div>
+            <div class="art__copy">
+                <span class="tag">RACE DAY CONTROL</span>
+                <h2>把每一次起跑<br>管得清清楚楚</h2>
+                <p>赛事、选手、号码布、成绩与排名，一套后台走完整个比赛日。</p>
+            </div>
+            <div class="art__facts">
+                <div><b>赛事</b><span>赛程、名额与报名窗口</span></div>
+                <div><b>选手</b><span>建档检索，证件脱敏</span></div>
+                <div><b>成绩</b><span>总排名、分组与成绩单</span></div>
+            </div>
+        </section>
+
+        <section class="login__panel">
+            <h1>管理员登录</h1>
+            <p class="login__sub">马拉松赛事管理系统</p>
+
+            <div v-if="loginError" class="login__alert">
+                <svg class="icon"><use href="#i-alert"></use></svg>
+                <span>{{ loginError }}</span>
+            </div>
+
+            <form @submit.prevent="doLogin">
+                <label class="field">
+                    <span class="lbl">账号</span>
+                    <input class="input" v-model.trim="loginForm.username" placeholder="请输入账号"
+                           autocomplete="username" required autofocus>
+                </label>
+                <label class="field">
+                    <span class="lbl">密码</span>
+                    <input class="input" v-model="loginForm.password" type="password" placeholder="请输入密码"
+                           autocomplete="current-password" required>
+                </label>
+                <button class="btn primary lg block" type="submit" :disabled="logging">
+                    <span v-if="logging" class="spin"></span>
+                    <svg v-else class="icon"><use href="#i-logout"></use></svg>
+                    {{ logging ? '登录中...' : '进入控制台' }}
+                </button>
+            </form>
+
+            <p class="login__tip">演示账号 <b>admin</b>　密码 <b>123456</b></p>
+
+            <div class="login__alt">
+                <span>我是参赛选手</span>
+                <a class="btn sm" href="/m/">
+                    <svg class="icon sm"><use href="#i-phone"></use></svg>
+                    前往选手端
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <!-- ==================== 主应用 ==================== -->
+    <div v-else class="shell" :class="{ collapsed: sidebarCollapsed }">
+
+        <aside class="sidebar" :class="{ open: mobileNavOpen }">
+            <div class="sidebar__brand">
+                <span class="mark">S</span>
+                <div class="txt">
+                    <b>Stride</b>
+                    <small>赛事管理台</small>
+                </div>
+            </div>
+
+            <nav class="sidebar__nav">
+                <button v-for="t in tabs" :key="t.key"
+                        class="nav__item" :class="{ active: active === t.key }"
+                        :title="t.label"
+                        @click="switchTab(t.key)">
+                    <svg class="icon"><use :href="'#' + t.icon"></use></svg>
+                    <span>{{ t.label }}</span>
+                    <span v-if="t.key === 'registration' && unpaidCount" class="nav__badge">{{ unpaidCount }}</span>
+                </button>
+
+                <div class="nav__sep">现场运营</div>
+
+                <button v-for="t in opsTabs" :key="t.key"
+                        class="nav__item" :class="{ active: active === t.key }"
+                        :title="t.label"
+                        @click="switchTab(t.key)">
+                    <svg class="icon"><use :href="'#' + t.icon"></use></svg>
+                    <span>{{ t.label }}</span>
+                </button>
+            </nav>
+
+            <div class="sidebar__foot">
+                <div class="avatar">{{ adminInitial }}</div>
+                <div class="who">
+                    <b>{{ adminName || '管理员' }}</b>
+                    <button class="link" @click="askLogout">退出登录</button>
+                </div>
+            </div>
+        </aside>
+
+        <div v-if="mobileNavOpen" class="scrim" @click="mobileNavOpen = false"></div>
+
+        <div class="main">
+            <!-- 顶栏 -->
+            <header class="topbar">
+                <button class="topbar__toggle menu-btn" @click="mobileNavOpen = !mobileNavOpen" aria-label="菜单">
+                    <svg class="icon"><use href="#i-menu"></use></svg>
+                </button>
+                <button class="topbar__toggle" @click="sidebarCollapsed = !sidebarCollapsed" :title="sidebarCollapsed ? '展开侧栏' : '收起侧栏'">
+                    <svg class="icon"><use href="#i-panel"></use></svg>
+                </button>
+
+                <div class="crumb">
+                    <span>控制台</span>
+                    <span class="sep">/</span>
+                    <b>{{ pageMeta.title }}</b>
+                </div>
+
+                <div class="topbar__right">
+                    <span class="topbar__stat" :class="{ busy: loading > 0 }">
+                        <i class="dot"></i>
+                        {{ loading > 0 ? '同步中' : '已连接' }}
+                    </span>
+                    <button class="btn sm" @click="reloadCurrent" :disabled="loading > 0" title="刷新当前页数据">
+                        <svg class="icon sm"><use href="#i-refresh"></use></svg>
+                        刷新
+                    </button>
+                    <button class="btn sm" @click="askLogout" title="退出登录">
+                        <svg class="icon sm"><use href="#i-logout"></use></svg>
+                    </button>
+                </div>
+
+                <div v-if="loading > 0" class="topbar__progress"><i></i></div>
+            </header>
+
+            <main class="content">
+                <!-- 页面标题 -->
+                <div class="pagehead">
+                    <div>
+                        <p class="pagehead__eyebrow">{{ pageMeta.eyebrow }}</p>
+                        <h1>{{ pageMeta.title }}</h1>
+                        <p class="pagehead__desc">{{ pageMeta.desc }}</p>
+                    </div>
+                    <div class="pagehead__actions" v-if="pageMeta.action">
+                        <button class="btn primary" @click="pageMeta.action.run">
+                            <svg class="icon sm"><use href="#i-plus"></use></svg>
+                            {{ pageMeta.action.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ==================== 现场检录 ==================== -->
+                <section v-show="active === 'checkin'">
+                    <div class="toolbar">
+                        <label class="field" style="min-width:200px">
+                            <span class="lbl">赛事</span>
+                            <select class="input" v-model.number="checkinEventId" @change="loadCheckinProgress">
+                                <option :value="null" disabled>选择赛事</option>
+                                <option v-for="e in allEvents" :key="e.id" :value="e.id">{{ e.eventName }}</option>
+                            </select>
+                        </label>
+                        <label class="field" style="min-width:220px">
+                            <span class="lbl">号码布 / 报名 ID</span>
+                            <div class="search">
+                                <svg class="icon sm"><use href="#i-search"></use></svg>
+                                <input class="input" v-model.trim="checkinInput" placeholder="如 A0001 或 2" @keyup.enter="doCheckin">
+                            </div>
+                        </label>
+                        <div class="toolbar__spacer"></div>
+                        <button class="btn primary" @click="doCheckin" :disabled="!checkinInput || busy">
+                            <svg class="icon sm"><use href="#i-check"></use></svg>核销检录
+                        </button>
+                    </div>
+
+                    <!-- 检录进度 -->
+                    <div class="panel" v-if="checkinProgress.total">
+                        <div class="panel__head">
+                            <div>
+                                <h3>检录进度</h3>
+                                <p class="sub">已核销 {{ checkinProgress.checked }} / {{ checkinProgress.total }} 人</p>
+                            </div>
+                            <span class="badge" :class="checkinProgress.percent >= 100 ? 'ok' : 'warn'">{{ checkinProgress.percent }}%</span>
+                        </div>
+                        <div class="panel__body">
+                            <div class="meter" style="height:10px">
+                                <div class="meter__fill" :style="{ width: checkinProgress.percent + '%' }"></div>
+                            </div>
+                            <p class="dim" style="margin-top:9px">
+                                还有 {{ checkinProgress.unchecked }} 人未检录
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 核销结果 -->
+                    <div class="panel" style="margin-top:14px" v-if="checkinResult">
+                        <div class="panel__head">
+                            <div>
+                                <h3>{{ checkinResult.alreadyCheckedIn ? '该选手已检录' : '检录成功' }}</h3>
+                                <p class="sub">{{ checkinResult.message || '已完成核销，可放行' }}</p>
+                            </div>
+                            <span class="badge ok">放行</span>
+                        </div>
+                        <div class="panel__body">
+                            <dl class="deflist">
+                                <div><dt>姓名</dt><dd>{{ checkinResult.name }}</dd></div>
+                                <div><dt>号码布</dt><dd class="mono">{{ checkinResult.bibNumber }}</dd></div>
+                                <div><dt>身份证后四位</dt><dd class="mono">{{ checkinResult.idCardTail }}</dd></div>
+                                <div><dt>性别</dt><dd>{{ checkinResult.gender === 1 ? '男' : '女' }}</dd></div>
+                                <div><dt>检录时间</dt><dd class="mono">{{ checkinResult.checkinTime }}</dd></div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="margin-top:14px" v-if="!checkinResult">
+                        <div class="empty">
+                            <svg class="icon"><use href="#i-shield"></use></svg>
+                            <p>输入号码布完成核销</p>
+                            <small>现场工作台只显示当前岗位需要的任务：核销 + 进度</small>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 证书与导出 ==================== -->
+                <section v-show="active === 'certificate'">
+                    <div class="toolbar">
+                        <label class="field" style="min-width:240px">
+                            <span class="lbl">赛事</span>
+                            <select class="input" v-model.number="certEventId" @change="loadCertList">
+                                <option :value="null" disabled>选择赛事</option>
+                                <option v-for="e in allEvents" :key="e.id" :value="e.id">{{ e.eventName }}</option>
+                            </select>
+                        </label>
+                        <div class="toolbar__spacer"></div>
+                        <button class="btn" @click="exportCerts">
+                            <svg class="icon sm"><use href="#i-download"></use></svg>导出名单
+                        </button>
+                        <button class="btn primary" @click="issueCerts" :disabled="busy">
+                            <svg class="icon sm"><use href="#i-medal"></use></svg>批量签发证书
+                        </button>
+                    </div>
+
+                    <div class="tablewrap">
+                        <div class="tablescroll">
+                            <table class="tbl">
+                                <thead>
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>号码布</th>
+                                    <th class="num">净成绩</th>
+                                    <th class="num">名次</th>
+                                    <th>证书状态</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="c in certList" :key="c.id">
+                                    <td><div class="cell-main">{{ c.runnerName }}</div></td>
+                                    <td class="mono">{{ c.bibNumber }}</td>
+                                    <td class="num mono">{{ c.netTimeStr }}</td>
+                                    <td class="num">{{ c.rank || '—' }}</td>
+                                    <td>
+                                        <span class="badge" :class="c.certIssued ? 'ok' : 'warn'">
+                                            {{ c.certIssued ? '已签发' : '待签发' }}
+                                        </span>
+                                    </td>
+                                    <td class="ops">
+                                        <button class="link" @click="viewCert(c)">预览</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="!certList.length">
+                                    <td colspan="6">
+                                        <div class="empty">
+                                            <svg class="icon"><use href="#i-medal"></use></svg>
+                                            <p>没有可签发的完赛证书</p>
+                                            <small>该赛事还没有已完赛的选手成绩</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 工作台 ==================== -->
+                <section v-show="active === 'home'">
+                    <div class="kpis">
+                        <article class="kpi">
+                            <div class="kpi__top">
+                                <span class="kpi__label">全部赛事</span>
+                                <span class="kpi__ico"><svg class="icon sm"><use href="#i-flag"></use></svg></span>
+                            </div>
+                            <p class="kpi__val">{{ overview.totalEvents }}<span class="unit">场</span></p>
+                            <p class="kpi__foot">
+                                <span class="kpi__trend up">
+                                    <svg class="icon sm"><use href="#i-arrow-up"></use></svg>{{ overview.openEvents }}
+                                </span>
+                                场报名中
+                            </p>
+                        </article>
+
+                        <article class="kpi">
+                            <div class="kpi__top">
+                                <span class="kpi__label">累计报名</span>
+                                <span class="kpi__ico"><svg class="icon sm"><use href="#i-users"></use></svg></span>
+                            </div>
+                            <p class="kpi__val">{{ overview.totalRegs }}<span class="unit">人</span></p>
+                            <p class="kpi__foot">总名额 {{ overview.totalQuota }} 人</p>
+                        </article>
+
+                        <article class="kpi">
+                            <div class="kpi__top">
+                                <span class="kpi__label">剩余名额</span>
+                                <span class="kpi__ico"><svg class="icon sm"><use href="#i-ticket"></use></svg></span>
+                            </div>
+                            <p class="kpi__val" :class="{ danger: overview.remain <= 0 }">{{ overview.remain }}</p>
+                            <p class="kpi__foot">
+                                占用率
+                                <span class="kpi__trend" :class="overview.fillRate >= 90 ? 'down' : 'up'">{{ overview.fillRate }}%</span>
+                            </p>
+                        </article>
+
+                        <article class="kpi accent">
+                            <div class="kpi__top">
+                                <span class="kpi__label">报名费合计</span>
+                                <span class="kpi__ico"><svg class="icon sm"><use href="#i-chart"></use></svg></span>
+                            </div>
+                            <p class="kpi__val">¥{{ overview.feeSum }}</p>
+                            <p class="kpi__foot">按已报名人数估算</p>
+                        </article>
+                    </div>
+
+                    <!-- 图表区 -->
+                    <div class="section-head">
+                        <div>
+                            <h2>赛事概览</h2>
+                            <p class="sub">名额占用与类型分布</p>
+                        </div>
+                    </div>
+
+                    <div class="chartgrid two">
+                        <div class="panel">
+                            <div class="panel__head">
+                                <div>
+                                    <h3>名额占用率</h3>
+                                    <p class="sub">已报名 / 总名额</p>
+                                </div>
+                            </div>
+                            <div class="panel__body">
+                                <div class="bars" v-if="quotaBars.length">
+                                    <div v-for="b in quotaBars" :key="b.id">
+                                        <div class="bar__top">
+                                            <span class="nm">{{ b.name }}</span>
+                                            <span class="vl">{{ b.used }}/{{ b.quota }} · {{ b.pct }}%</span>
+                                        </div>
+                                        <div class="bar__track">
+                                            <div class="bar__fill" :style="{ width: b.pct + '%', background: b.color }"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="empty" v-else>
+                                    <svg class="icon"><use href="#i-inbox"></use></svg>
+                                    <p>还没有赛事数据</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel__head">
+                                <div>
+                                    <h3>赛事类型分布</h3>
+                                    <p class="sub">按场次统计</p>
+                                </div>
+                            </div>
+                            <div class="panel__body">
+                                <div class="donut" v-if="typeDonut.total > 0">
+                                    <div class="donut__fig">
+                                        <svg width="132" height="132" viewBox="0 0 132 132">
+                                            <circle cx="66" cy="66" r="52" fill="none" stroke="var(--canvas-2)" stroke-width="17"></circle>
+                                            <circle v-for="seg in typeDonut.segments" :key="seg.label"
+                                                    cx="66" cy="66" r="52" fill="none"
+                                                    :stroke="seg.color" stroke-width="17"
+                                                    :stroke-dasharray="seg.dash"
+                                                    :stroke-dashoffset="seg.offset"></circle>
+                                        </svg>
+                                        <div class="donut__center">
+                                            <b class="num">{{ typeDonut.total }}</b>
+                                            <span>场赛事</span>
+                                        </div>
+                                    </div>
+                                    <div class="donut__legend">
+                                        <div v-for="seg in typeDonut.segments" :key="seg.label">
+                                            <i class="sw" :style="{ background: seg.color }"></i>
+                                            <span class="nm">{{ seg.label }}</span>
+                                            <span class="vl">{{ seg.value }}</span>
+                                            <span class="pc">{{ seg.pct }}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="empty" v-else>
+                                    <svg class="icon"><use href="#i-inbox"></use></svg>
+                                    <p>还没有赛事数据</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 赛事一览 -->
+                    <div class="section-head">
+                        <div>
+                            <h2>赛事一览</h2>
+                            <p class="sub">最多展示 6 场</p>
+                        </div>
+                        <button class="btn sm" @click="switchTab('event')">
+                            管理全部赛事
+                            <svg class="icon sm"><use href="#i-chev-r"></use></svg>
+                        </button>
+                    </div>
+
+                    <div class="cards" v-if="allEvents.length">
+                        <article class="ecard" v-for="e in allEvents.slice(0, 6)" :key="e.id">
+                            <div class="ecard__top">
+                                <span class="tag" :class="eventTypeTag(e.eventType)">{{ EVENT_TYPE[e.eventType] }}</span>
+                                <span class="badge" :class="eventStatusBadge(e.status)">{{ EVENT_STATUS[e.status] }}</span>
+                            </div>
+                            <h3>{{ e.eventName }}</h3>
+                            <div class="ecard__meta">
+                                <span><svg class="icon"><use href="#i-calendar"></use></svg>{{ e.eventDate }}</span>
+                                <span><svg class="icon"><use href="#i-map"></use></svg>{{ e.startLocation }}</span>
+                                <span><svg class="icon"><use href="#i-flag"></use></svg>{{ e.distanceKm }}km</span>
+                            </div>
+                            <div class="ecard__quota">
+                                <div class="ecard__quotarow">
+                                    <span>名额占用</span>
+                                    <b>{{ e.registeredCount }} / {{ e.quota }}</b>
+                                </div>
+                                <div class="meter">
+                                    <div class="meter__fill" :class="{ full: quotaPercent(e) >= 100 }" :style="{ width: quotaPercent(e) + '%' }"></div>
+                                </div>
+                            </div>
+                            <div class="ecard__foot">
+                                <span class="ecard__fee">¥{{ e.entryFee }}<small>报名费</small></span>
+                                <span class="ecard__ops">
+                                    <button class="link" @click="openEventForm(e)">编辑</button>
+                                    <button class="link" @click="goRegs(e.id)">名单</button>
+                                    <button class="link" @click="goRank(e.id)">排名</button>
+                                </span>
+                            </div>
+                        </article>
+                    </div>
+                    <div v-else class="panel">
+                        <div class="empty">
+                            <svg class="icon"><use href="#i-flag"></use></svg>
+                            <p>还没有赛事</p>
+                            <small>先新增一场比赛，再开始接受报名</small>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 赛事管理 ==================== -->
+                <section v-show="active === 'event'">
+                    <div class="toolbar">
+                        <label class="field">
+                            <span class="lbl">赛事名称</span>
+                            <div class="search">
+                                <svg class="icon sm"><use href="#i-search"></use></svg>
+                                <input class="input" v-model="eventQuery.eventName" placeholder="模糊搜索" @keyup.enter="searchEvents">
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">类型</span>
+                            <select class="input" v-model.number="eventQuery.eventType">
+                                <option :value="null">全部类型</option>
+                                <option :value="1">全程马拉松</option>
+                                <option :value="2">半程马拉松</option>
+                                <option :value="3">迷你跑</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">状态</span>
+                            <select class="input" v-model.number="eventQuery.status">
+                                <option :value="null">全部状态</option>
+                                <option :value="0">报名中</option>
+                                <option :value="1">报名截止</option>
+                                <option :value="2">比赛中</option>
+                                <option :value="3">已结束</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">开始日期</span>
+                            <input class="input" type="date" v-model="eventQuery.startDate">
+                        </label>
+                        <label class="field">
+                            <span class="lbl">结束日期</span>
+                            <input class="input" type="date" v-model="eventQuery.endDate">
+                        </label>
+                        <div class="toolbar__spacer"></div>
+                        <button class="btn primary" @click="searchEvents">
+                            <svg class="icon sm"><use href="#i-search"></use></svg>查询
+                        </button>
+                        <button class="btn" @click="resetEventQuery">重置</button>
+                        <button class="btn" @click="exportEvents">
+                            <svg class="icon sm"><use href="#i-download"></use></svg>导出
+                        </button>
+                        <button class="btn primary" @click="openEventForm()">
+                            <svg class="icon sm"><use href="#i-plus"></use></svg>新增赛事
+                        </button>
+                    </div>
+
+                    <div class="tablewrap">
+                        <div class="tablescroll">
+                            <table class="tbl">
+                                <thead>
+                                <tr>
+                                    <th>赛事</th>
+                                    <th>类型</th>
+                                    <th class="sortable" @click="sortBy('event', 'eventDate')">
+                                        日期 <svg v-if="eventSort.key==='eventDate'" class="icon sm sortmark"><use :href="eventSort.dir==='asc'?'#i-sort-up':'#i-sort-down'"></use></svg>
+                                    </th>
+                                    <th>起点</th>
+                                    <th class="num">距离</th>
+                                    <th class="sortable num" @click="sortBy('event','quotaPercent')">
+                                        名额 <svg v-if="eventSort.key==='quotaPercent'" class="icon sm sortmark"><use :href="eventSort.dir==='asc'?'#i-sort-up':'#i-sort-down'"></use></svg>
+                                    </th>
+                                    <th class="num">报名费</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="e in sortedEvents" :key="e.id">
+                                    <td>
+                                        <div class="cell-main">{{ e.eventName }}</div>
+                                        <div class="cell-sub">#{{ e.id }}</div>
+                                    </td>
+                                    <td><span class="tag" :class="eventTypeTag(e.eventType)">{{ EVENT_TYPE[e.eventType] }}</span></td>
+                                    <td class="mono">{{ e.eventDate }}</td>
+                                    <td>{{ e.startLocation }}</td>
+                                    <td class="num">{{ e.distanceKm }}km</td>
+                                    <td class="num">
+                                        <div class="meter sm" style="margin-bottom:4px">
+                                            <div class="meter__fill" :class="{ full: quotaPercent(e) >= 100 }" :style="{ width: quotaPercent(e) + '%' }"></div>
+                                        </div>
+                                        <span :class="{ danger: e.remainQuota <= 0 }">{{ e.registeredCount }}/{{ e.quota }}</span>
+                                        <span class="cell-sub">余 {{ e.remainQuota }}</span>
+                                    </td>
+                                    <td class="num">¥{{ e.entryFee }}</td>
+                                    <td><span class="badge" :class="eventStatusBadge(e.status)">{{ EVENT_STATUS[e.status] }}</span></td>
+                                    <td class="ops">
+                                        <button class="link" @click="viewEvent(e.id)">详情</button>
+                                        <button class="link" @click="openEventForm(e)">编辑</button>
+                                        <button class="link" @click="goRegs(e.id)">报名</button>
+                                        <button class="link danger" @click="delEvent(e.id)">删除</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="!events.length">
+                                    <td colspan="8">
+                                        <div class="empty">
+                                            <svg class="icon"><use href="#i-inbox"></use></svg>
+                                            <p>没有符合条件的赛事</p>
+                                            <small>调整筛选条件，或新增一场赛事</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- 骨架屏 -->
+                        <template v-if="loading > 0 && !events.length">
+                            <div class="skel-row" v-for="i in 5" :key="'s'+i">
+                                <div class="skel" style="width:22%"></div>
+                                <div class="skel" style="width:10%"></div>
+                                <div class="skel" style="width:14%"></div>
+                                <div class="skel" style="width:16%"></div>
+                                <div class="skel" style="width:12%"></div>
+                                <div class="skel" style="flex:1"></div>
+                            </div>
+                        </template>
+
+                        <div class="pager">
+                            <span class="pager__info">共 <b>{{ eventTotal }}</b> 条 · 第 {{ eventQuery.pageNum }} / {{ eventPages || 1 }} 页</span>
+                            <div class="pager__nav">
+                                <button class="pager__page" :disabled="eventQuery.pageNum <= 1" @click="changeEventPage(-1)">
+                                    <svg class="icon sm"><use href="#i-chev-l"></use></svg>
+                                </button>
+                                <template v-for="(p, i) in eventPageList" :key="p + '-' + i">
+                                    <span v-if="p === '...'" class="pager__gap">…</span>
+                                    <button v-else class="pager__page" :class="{ active: p === eventQuery.pageNum }" @click="goEventPage(p)">{{ p }}</button>
+                                </template>
+                                <button class="pager__page" :disabled="eventQuery.pageNum >= eventPages" @click="changeEventPage(1)">
+                                    <svg class="icon sm"><use href="#i-chev-r"></use></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 选手管理 ==================== -->
+                <section v-show="active === 'runner'">
+                    <div class="toolbar">
+                        <label class="field">
+                            <span class="lbl">姓名</span>
+                            <div class="search">
+                                <svg class="icon sm"><use href="#i-search"></use></svg>
+                                <input class="input" v-model="runnerQuery.name" placeholder="选手姓名" @keyup.enter="searchRunners">
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">手机号</span>
+                            <input class="input" v-model="runnerQuery.phone" placeholder="11 位手机号" @keyup.enter="searchRunners">
+                        </label>
+                        <label class="field">
+                            <span class="lbl">性别</span>
+                            <select class="input" v-model.number="runnerQuery.gender">
+                                <option :value="null">全部性别</option>
+                                <option :value="1">男</option>
+                                <option :value="2">女</option>
+                            </select>
+                        </label>
+                        <div class="toolbar__spacer"></div>
+                        <button class="btn primary" @click="searchRunners">
+                            <svg class="icon sm"><use href="#i-search"></use></svg>查询
+                        </button>
+                        <button class="btn" @click="resetRunnerQuery">重置</button>
+                        <button class="btn" @click="exportRunners">
+                            <svg class="icon sm"><use href="#i-download"></use></svg>导出
+                        </button>
+                        <button class="btn primary" @click="openRunnerForm()">
+                            <svg class="icon sm"><use href="#i-plus"></use></svg>新增选手
+                        </button>
+                    </div>
+
+                    <div class="tablewrap">
+                        <div class="tablescroll">
+                            <table class="tbl">
+                                <thead>
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>性别</th>
+                                    <th class="num">年龄</th>
+                                    <th>身份证号</th>
+                                    <th>手机号</th>
+                                    <th>紧急联系人</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="r in runners" :key="r.id">
+                                    <td>
+                                        <div class="cell-main">{{ r.name }}</div>
+                                        <div class="cell-sub">#{{ r.id }}</div>
+                                    </td>
+                                    <td><span class="badge" :class="r.gender === 1 ? 'info' : 'teal'">{{ r.gender === 1 ? '男' : '女' }}</span></td>
+                                    <td class="num">{{ r.age }}</td>
+                                    <td class="mono">{{ maskId(r.idCard) }}</td>
+                                    <td class="mono">{{ maskPhone(r.phone) }}</td>
+                                    <td>{{ r.emergencyContact }}</td>
+                                    <td class="ops">
+                                        <button class="link" @click="viewRunner(r.id)">详情</button>
+                                        <button class="link" @click="openRunnerForm(r)">编辑</button>
+                                        <button class="link" @click="openResetPwd(r)">重置密码</button>
+                                        <button class="link danger" @click="delRunner(r.id)">删除</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="!runners.length">
+                                    <td colspan="7">
+                                        <div class="empty">
+                                            <svg class="icon"><use href="#i-users"></use></svg>
+                                            <p>暂无选手档案</p>
+                                            <small>先建立选手档案，才能提交报名</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <template v-if="loading > 0 && !runners.length">
+                            <div class="skel-row" v-for="i in 5" :key="'s'+i">
+                                <div class="skel" style="width:18%"></div>
+                                <div class="skel" style="width:8%"></div>
+                                <div class="skel" style="width:8%"></div>
+                                <div class="skel" style="width:22%"></div>
+                                <div class="skel" style="width:16%"></div>
+                                <div class="skel" style="flex:1"></div>
+                            </div>
+                        </template>
+
+                        <div class="pager">
+                            <span class="pager__info">共 <b>{{ runnerTotal }}</b> 条 · 第 {{ runnerQuery.pageNum }} / {{ runnerPages || 1 }} 页</span>
+                            <div class="pager__nav">
+                                <button class="pager__page" :disabled="runnerQuery.pageNum <= 1" @click="changeRunnerPage(-1)">
+                                    <svg class="icon sm"><use href="#i-chev-l"></use></svg>
+                                </button>
+                                <template v-for="(p, i) in runnerPageList" :key="p + '-' + i">
+                                    <span v-if="p === '...'" class="pager__gap">…</span>
+                                    <button v-else class="pager__page" :class="{ active: p === runnerQuery.pageNum }" @click="goRunnerPage(p)">{{ p }}</button>
+                                </template>
+                                <button class="pager__page" :disabled="runnerQuery.pageNum >= runnerPages" @click="changeRunnerPage(1)">
+                                    <svg class="icon sm"><use href="#i-chev-r"></use></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 报名管理 ==================== -->
+                <section v-show="active === 'registration'">
+                    <div class="toolbar">
+                        <label class="field">
+                            <span class="lbl">赛事</span>
+                            <select class="input" v-model.number="regQuery.eventId" @change="searchRegs">
+                                <option :value="null">全部赛事</option>
+                                <option v-for="e in allEvents" :key="e.id" :value="e.id">{{ e.eventName }}</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">选手姓名</span>
+                            <div class="search">
+                                <svg class="icon sm"><use href="#i-search"></use></svg>
+                                <input class="input" v-model="regQuery.name" placeholder="选手姓名" @keyup.enter="searchRegs">
+                            </div>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">支付状态</span>
+                            <select class="input" v-model.number="regQuery.payStatus" @change="searchRegs">
+                                <option :value="null">全部</option>
+                                <option :value="0">未支付</option>
+                                <option :value="1">已支付</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">报名状态</span>
+                            <select class="input" v-model.number="regQuery.status" @change="searchRegs">
+                                <option :value="null">全部</option>
+                                <option :value="1">已报名</option>
+                                <option :value="2">已取消</option>
+                                <option :value="3">退赛</option>
+                            </select>
+                        </label>
+                        <div class="toolbar__spacer"></div>
+                        <button class="btn primary" @click="searchRegs">
+                            <svg class="icon sm"><use href="#i-search"></use></svg>查询
+                        </button>
+                        <button class="btn" @click="resetRegQuery">重置</button>
+                        <button class="btn" @click="exportRegs">
+                            <svg class="icon sm"><use href="#i-download"></use></svg>导出
+                        </button>
+                        <button class="btn primary" @click="openSubmit()">
+                            <svg class="icon sm"><use href="#i-plus"></use></svg>提交报名
+                        </button>
+                    </div>
+
+                    <!-- 批量操作条 -->
+                    <div class="bulkbar" v-if="selectedRegIds.length">
+                        <svg class="icon sm"><use href="#i-layers"></use></svg>
+                        已选中 <b>{{ selectedRegIds.length }}</b> 条报名记录
+                        <span class="spacer"></span>
+                        <button class="btn sm" @click="batchMarkPaid" :disabled="bulkBusy">
+                            <svg class="icon sm"><use href="#i-check"></use></svg>批量确认支付
+                        </button>
+                        <button class="btn sm" @click="batchAssignBib" :disabled="bulkBusy">
+                            <svg class="icon sm"><use href="#i-ticket"></use></svg>批量分配号码布
+                        </button>
+                        <button class="btn sm ghost" @click="clearSelection">取消选择</button>
+                    </div>
+
+                    <div class="tablewrap">
+                        <div class="tablescroll">
+                            <table class="tbl">
+                                <thead>
+                                <tr>
+                                    <th class="col-check">
+                                        <input type="checkbox" class="cbx" :checked="allSelected"
+                                               @change="toggleSelectAll" aria-label="全选">
+                                    </th>
+                                    <th>号码布</th>
+                                    <th>选手</th>
+                                    <th>赛事</th>
+                                    <th>报名时间</th>
+                                    <th>支付</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="r in regs" :key="r.id" :class="{ selected: isSelected(r.id) }">
+                                    <td class="col-check">
+                                        <input type="checkbox" class="cbx" :checked="isSelected(r.id)"
+                                               @change="toggleSelect(r.id)" :aria-label="'选择报名 ' + r.id">
+                                    </td>
+                                    <td>
+                                        <div class="cell-main mono">{{ r.bibNumber || '—' }}</div>
+                                        <div class="cell-sub">报名 #{{ r.id }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="cell-main">{{ r.runner && r.runner.name }}</div>
+                                        <div class="cell-sub" v-if="r.runner">
+                                            {{ r.runner.gender === 1 ? '男' : '女' }} · {{ maskPhone(r.runner.phone) }}
+                                        </div>
+                                    </td>
+                                    <td>{{ r.event && r.event.eventName }}</td>
+                                    <td class="mono">{{ r.registerTime }}</td>
+                                    <td>
+                                        <span class="badge" :class="r.payStatus === 1 ? 'ok' : 'warn'">
+                                            {{ r.payStatus === 1 ? '已支付' : '未支付' }}
+                                        </span>
+                                    </td>
+                                    <td><span class="badge" :class="regStatusBadge(r.status)">{{ REG_STATUS[r.status] }}</span></td>
+                                    <td class="ops">
+                                        <template v-if="r.status === 1">
+                                            <button class="link" v-if="r.payStatus !== 1" @click="markPaid(r)">确认支付</button>
+                                            <button class="link" @click="openBibForm(r)">号码布</button>
+                                            <button class="link" v-if="r.bibNumber" @click="clearBib(r)">清号码</button>
+                                            <button class="link" @click="inputResult(r)">录成绩</button>
+                                            <button class="link danger" @click="cancelReg(r.id)">取消</button>
+                                        </template>
+                                        <span v-else class="dim">已取消</span>
+                                    </td>
+                                </tr>
+                                <tr v-if="!regs.length">
+                                    <td colspan="8">
+                                        <div class="empty">
+                                            <svg class="icon"><use href="#i-ticket"></use></svg>
+                                            <p>暂无报名记录</p>
+                                            <small>点击右上角「提交报名」为选手报名</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <template v-if="loading > 0 && !regs.length">
+                            <div class="skel-row" v-for="i in 5" :key="'s'+i">
+                                <div class="skel" style="width:6%"></div>
+                                <div class="skel" style="width:12%"></div>
+                                <div class="skel" style="width:20%"></div>
+                                <div class="skel" style="width:20%"></div>
+                                <div class="skel" style="width:16%"></div>
+                                <div class="skel" style="flex:1"></div>
+                            </div>
+                        </template>
+
+                        <div class="pager">
+                            <span class="pager__info">共 <b>{{ regTotal }}</b> 条 · 第 {{ regQuery.pageNum }} / {{ regPages || 1 }} 页</span>
+                            <div class="pager__nav">
+                                <button class="pager__page" :disabled="regQuery.pageNum <= 1" @click="changeRegPage(-1)">
+                                    <svg class="icon sm"><use href="#i-chev-l"></use></svg>
+                                </button>
+                                <template v-for="(p, i) in regPageList" :key="p + '-' + i">
+                                    <span v-if="p === '...'" class="pager__gap">…</span>
+                                    <button v-else class="pager__page" :class="{ active: p === regQuery.pageNum }" @click="goRegPage(p)">{{ p }}</button>
+                                </template>
+                                <button class="pager__page" :disabled="regQuery.pageNum >= regPages" @click="changeRegPage(1)">
+                                    <svg class="icon sm"><use href="#i-chev-r"></use></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 成绩排名 ==================== -->
+                <section v-show="active === 'result'">
+                    <div class="toolbar">
+                        <label class="field" style="min-width:260px">
+                            <span class="lbl">选择赛事</span>
+                            <select class="input" v-model.number="rankEventId" @change="loadRankings">
+                                <option :value="null" disabled>请选择赛事</option>
+                                <option v-for="e in allEvents" :key="e.id" :value="e.id">{{ e.eventName }}</option>
+                            </select>
+                        </label>
+                        <div class="toolbar__spacer"></div>
+                        <button class="btn" @click="printRanking">
+                            <svg class="icon sm"><use href="#i-download"></use></svg>打印成绩单
+                        </button>
+                    </div>
+
+                    <!-- 统计 -->
+                    <div class="stats" v-if="stats">
+                        <div class="stat">
+                            <label>报名人数</label>
+                            <b>{{ stats.totalRegister }}</b>
+                        </div>
+                        <div class="stat">
+                            <label>男 / 女</label>
+                            <b>{{ stats.maleCount }} / {{ stats.femaleCount }}</b>
+                            <span class="sub">按有效报名统计</span>
+                        </div>
+                        <div class="stat">
+                            <label>完赛率</label>
+                            <b>{{ stats.finishRate }}%</b>
+                            <span class="sub">{{ stats.finishCount }} / {{ stats.totalRegister }} 人完赛</span>
+                        </div>
+                        <div class="stat">
+                            <label>平均净成绩</label>
+                            <b>{{ stats.avgNetTimeStr || '—' }}</b>
+                            <span class="sub">{{ stats.avgNetTime ? ('基于 ' + stats.finishCount + ' 条完赛成绩') : '暂无完赛成绩' }}</span>
+                        </div>
+                        <div class="stat">
+                            <label>未完赛 / 退赛</label>
+                            <b>{{ stats.unFinishCount || 0 }} / {{ stats.retireCount || 0 }}</b>
+                            <span class="sub">未完成或中途退出</span>
+                        </div>
+                    </div>
+
+                    <!-- 图表：性别构成 + 成绩分布 -->
+                    <div class="chartgrid two" style="margin-top:16px" v-if="stats">
+                        <div class="panel">
+                            <div class="panel__head">
+                                <div>
+                                    <h3>性别构成</h3>
+                                    <p class="sub">有效报名人数占比</p>
+                                </div>
+                            </div>
+                            <div class="panel__body">
+                                <div class="donut">
+                                    <div class="donut__fig">
+                                        <svg width="132" height="132" viewBox="0 0 132 132">
+                                            <circle cx="66" cy="66" r="52" fill="none" stroke="var(--canvas-2)" stroke-width="17"></circle>
+                                            <circle v-for="seg in genderDonut.segments" :key="seg.label"
+                                                    cx="66" cy="66" r="52" fill="none"
+                                                    :stroke="seg.color" stroke-width="17"
+                                                    :stroke-dasharray="seg.dash" :stroke-dashoffset="seg.offset"></circle>
+                                        </svg>
+                                        <div class="donut__center">
+                                            <b class="num">{{ genderDonut.total }}</b>
+                                            <span>人报名</span>
+                                        </div>
+                                    </div>
+                                    <div class="donut__legend">
+                                        <div v-for="seg in genderDonut.segments" :key="seg.label">
+                                            <i class="sw" :style="{ background: seg.color }"></i>
+                                            <span class="nm">{{ seg.label }}</span>
+                                            <span class="vl">{{ seg.value }}</span>
+                                            <span class="pc">{{ seg.pct }}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="panel">
+                            <div class="panel__head">
+                                <div>
+                                    <h3>净成绩分布</h3>
+                                    <p class="sub">完赛选手按成绩区间</p>
+                                </div>
+                            </div>
+                            <div class="panel__body">
+                                <div class="hist" v-if="timeHistogram.bars.length">
+                                    <div class="hist__col" v-for="b in timeHistogram.bars" :key="b.label">
+                                        <b>{{ b.count }}</b>
+                                        <div class="hist__track">
+                                            <div class="hist__bar" :style="{ height: b.height + '%' }"
+                                                 :title="b.title"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="empty" v-else style="padding:30px 0">
+                                    <svg class="icon"><use href="#i-chart"></use></svg>
+                                    <p>暂无完赛成绩</p>
+                                    <small>录入成绩后这里会显示分布</small>
+                                </div>
+                                <div class="hist__x" v-if="timeHistogram.bars.length">
+                                    <span v-for="b in timeHistogram.bars" :key="'x'+b.label">{{ b.short }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 领奖台 -->
+                    <div class="panel" style="margin-top:16px" v-if="podium.length">
+                        <div class="panel__head">
+                            <div>
+                                <h3>领奖台</h3>
+                                <p class="sub">本场赛事前三名</p>
+                            </div>
+                            <span class="tag gold">
+                                <svg class="icon sm"><use href="#i-medal"></use></svg>
+                                {{ stats ? stats.eventName : '' }}
+                            </span>
+                        </div>
+                        <div class="panel__body">
+                            <div class="podium">
+                                <div class="podium__item" :class="'p' + p.rank" v-for="p in podium" :key="p.rank">
+                                    <span class="podium__ribbon">第 {{ p.rank }} 名</span>
+                                    <div class="podium__avatar">{{ (p.name || '?').slice(0, 1) }}</div>
+                                    <div class="podium__name">{{ p.name }}</div>
+                                    <div class="podium__time mono">{{ p.netTimeStr }}</div>
+                                    <div class="podium__block">{{ p.rank }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 排名标签页 -->
+                    <div class="tabs" style="margin-top:20px">
+                        <button :class="{ active: rankTab === 'all' }" @click="switchRankTab('all')">总排名</button>
+                        <button :class="{ active: rankTab === 'gender' }" @click="switchRankTab('gender')">男女分组</button>
+                        <button :class="{ active: rankTab === 'age' }" @click="switchRankTab('age')">年龄分组</button>
+                        <button :class="{ active: rankTab === 'records' }" @click="switchRankTab('records')">成绩明细</button>
+                    </div>
+
+                    <div v-show="rankTab === 'all'">
+                        <div class="tablewrap">
+                            <div class="tablescroll">
+                                <table class="tbl">
+                                    <thead>
+                                    <tr>
+                                        <th style="width:70px">名次</th>
+                                        <th>姓名</th>
+                                        <th>号码布</th>
+                                        <th>性别</th>
+                                        <th class="num">净成绩</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-for="r in rankAll" :key="r.rank">
+                                        <td>
+                                            <span class="badge" :class="medalBadge(r.rank)">{{ r.rank }}</span>
+                                        </td>
+                                        <td><div class="cell-main">{{ r.name }}</div></td>
+                                        <td class="mono">{{ r.bibNumber }}</td>
+                                        <td><span class="badge" :class="r.gender === 1 ? 'info' : 'teal'">{{ r.gender === 1 ? '男' : '女' }}</span></td>
+                                        <td class="num mono">{{ r.netTimeStr }}</td>
+                                    </tr>
+                                    <tr v-if="!rankAll.length">
+                                        <td colspan="5">
+                                            <div class="empty">
+                                                <svg class="icon"><use href="#i-trophy"></use></svg>
+                                                <p>暂无完赛成绩</p>
+                                                <small>在「报名管理」中为选手录入成绩</small>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-show="rankTab === 'gender'" class="chartgrid two">
+                        <div class="tablewrap" v-for="grp in genderGroups" :key="grp.key">
+                            <div class="panel__head">
+                                <h3>{{ grp.label }}</h3>
+                                <span class="badge" :class="grp.key === 'm' ? 'info' : 'teal'">{{ grp.list.length }} 人</span>
+                            </div>
+                            <div class="tablescroll">
+                                <table class="tbl">
+                                    <thead>
+                                    <tr><th style="width:64px">名次</th><th>姓名</th><th>号码布</th><th class="num">净成绩</th></tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-for="r in grp.list" :key="grp.key + r.rank">
+                                        <td><span class="badge" :class="medalBadge(r.rank)">{{ r.rank }}</span></td>
+                                        <td class="cell-main">{{ r.name }}</td>
+                                        <td class="mono">{{ r.bibNumber }}</td>
+                                        <td class="num mono">{{ r.netTimeStr }}</td>
+                                    </tr>
+                                    <tr v-if="!grp.list.length">
+                                        <td colspan="4"><div class="empty" style="padding:30px 0"><p>暂无数据</p></div></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-show="rankTab === 'age'">
+                        <div class="chartgrid two">
+                            <div class="tablewrap" v-for="g in ageGroups" :key="g.key">
+                                <div class="panel__head">
+                                    <h3>{{ g.label }}</h3>
+                                    <span class="badge">{{ g.list.length }} 人</span>
+                                </div>
+                                <div class="tablescroll">
+                                    <table class="tbl">
+                                        <thead>
+                                        <tr><th style="width:64px">名次</th><th>姓名</th><th class="num">年龄</th><th class="num">净成绩</th></tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr v-for="r in g.list" :key="g.key + r.rank">
+                                            <td><span class="badge" :class="medalBadge(r.rank)">{{ r.rank }}</span></td>
+                                            <td class="cell-main">{{ r.name }}</td>
+                                            <td class="num">{{ r.age }}</td>
+                                            <td class="num mono">{{ r.netTimeStr }}</td>
+                                        </tr>
+                                        <tr v-if="!g.list.length">
+                                            <td colspan="4"><div class="empty" style="padding:30px 0"><p>该组暂无完赛选手</p></div></td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-show="rankTab === 'records'">
+                        <div class="tablewrap">
+                            <div class="tablescroll">
+                                <table class="tbl">
+                                    <thead>
+                                    <tr>
+                                        <th>选手</th>
+                                        <th>号码布</th>
+                                        <th class="num">枪声成绩</th>
+                                        <th class="num">净成绩</th>
+                                        <th>完赛状态</th>
+                                        <th>完赛时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-for="r in resultRecords" :key="r.id">
+                                        <td><div class="cell-main">{{ r.runnerName }}</div></td>
+                                        <td class="mono">{{ r.bibNumber }}</td>
+                                        <td class="num mono">{{ formatSeconds(r.chipTime) }}</td>
+                                        <td class="num mono">{{ formatSeconds(r.netTime) }}</td>
+                                        <td><span class="badge" :class="finishBadge(r.finishStatus)">{{ FINISH_STATUS[r.finishStatus] }}</span></td>
+                                        <td class="mono">{{ r.finishTime || '—' }}</td>
+                                        <td class="ops">
+                                            <button class="link" @click="editResult(r)">修改</button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!resultRecords.length">
+                                        <td colspan="7">
+                                            <div class="empty">
+                                                <svg class="icon"><use href="#i-inbox"></use></svg>
+                                                <p>暂无成绩明细</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="pager">
+                                <span class="pager__info">共 <b>{{ resultTotal }}</b> 条 · 第 {{ resultQuery.pageNum }} / {{ resultPages || 1 }} 页</span>
+                                <div class="pager__nav">
+                                    <button class="pager__page" :disabled="resultQuery.pageNum <= 1" @click="changeResultPage(-1)">
+                                        <svg class="icon sm"><use href="#i-chev-l"></use></svg>
+                                    </button>
+                                    <template v-for="(p, i) in resultPageList" :key="p + '-' + i">
+                                        <span v-if="p === '...'" class="pager__gap">…</span>
+                                        <button v-else class="pager__page" :class="{ active: p === resultQuery.pageNum }" @click="goResultPage(p)">{{ p }}</button>
+                                    </template>
+                                    <button class="pager__page" :disabled="resultQuery.pageNum >= resultPages" @click="changeResultPage(1)">
+                                        <svg class="icon sm"><use href="#i-chev-r"></use></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- ==================== 表单弹窗 ==================== -->
+    <div v-if="dialog" class="mask" @click.self="closeDialog">
+        <div class="modal" :class="{ wide: dialog === 'submit' }">
+            <div class="modal__head">
+                <div>
+                    <h3>{{ dialogTitle }}</h3>
+                    <p class="sub" v-if="dialogSub">{{ dialogSub }}</p>
+                </div>
+                <button class="modal__x" @click="closeDialog" aria-label="关闭">
+                    <svg class="icon"><use href="#i-x"></use></svg>
+                </button>
+            </div>
+
+            <div class="modal__body">
+                <!-- 赛事表单 -->
+                <template v-if="dialog === 'event'">
+                    <div class="notice">
+                        <svg class="icon sm"><use href="#i-info"></use></svg>
+                        <span>状态只能向前推进：报名中 → 报名截止 → 比赛中 → 已结束。只有「比赛中」才能录入成绩，「已结束」后才能签发证书。</span>
+                    </div>
+                    <div class="formgrid">
+                        <label class="field full">
+                            <span class="lbl">赛事名称 <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.eventName }" v-model="form.eventName" placeholder="如 2026 西安国际马拉松">
+                            <span class="err" v-if="errors.eventName"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.eventName }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">赛事类型 <i class="req">*</i></span>
+                            <select class="input" v-model.number="form.eventType">
+                                <option :value="1">全程马拉松</option>
+                                <option :value="2">半程马拉松</option>
+                                <option :value="3">迷你跑</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">比赛日期 <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.eventDate }" type="date" v-model="form.eventDate">
+                            <span class="err" v-if="errors.eventDate"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.eventDate }}</span>
+                        </label>
+                        <label class="field full">
+                            <span class="lbl">起点地点 <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.startLocation }" v-model="form.startLocation" placeholder="如 西安大明宫国家遗址公园">
+                            <span class="err" v-if="errors.startLocation"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.startLocation }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">距离（公里） <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.distanceKm }" type="number" step="0.001" v-model.number="form.distanceKm">
+                            <span class="err" v-if="errors.distanceKm"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.distanceKm }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">总名额 <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.quota }" type="number" min="1" v-model.number="form.quota">
+                            <span class="err" v-if="errors.quota"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.quota }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">报名费（元） <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.entryFee }" type="number" step="0.01" min="0" v-model.number="form.entryFee">
+                            <span class="err" v-if="errors.entryFee"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.entryFee }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">状态</span>
+                            <select class="input" v-model.number="form.status">
+                                <option v-for="o in eventStatusOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                            </select>
+                            <span class="hint">状态只能向前推进：报名中 → 报名截止 → 比赛中 → 已结束</span>
+                        </label>
+                    </div>
+                </template>
+
+                <!-- 选手表单 -->
+                <template v-if="dialog === 'runner'">
+                    <div class="formgrid">
+                        <label class="field">
+                            <span class="lbl">姓名 <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.name }" v-model="form.name" placeholder="真实姓名">
+                            <span class="err" v-if="errors.name"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.name }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">性别 <i class="req">*</i></span>
+                            <select class="input" v-model.number="form.gender">
+                                <option :value="1">男</option>
+                                <option :value="2">女</option>
+                            </select>
+                        </label>
+                        <label class="field full">
+                            <span class="lbl">身份证号 <i class="req">*</i></span>
+                            <input class="input mono" :class="{ invalid: errors.idCard }" v-model.trim="form.idCard" maxlength="18" placeholder="18 位身份证号">
+                            <span class="err" v-if="errors.idCard"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.idCard }}</span>
+                            <span class="hint" v-else>18 位，最后一位可能是 X</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">手机号 <i class="req">*</i></span>
+                            <input class="input mono" :class="{ invalid: errors.phone }" v-model.trim="form.phone" maxlength="11" placeholder="11 位手机号">
+                            <span class="err" v-if="errors.phone"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.phone }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">出生日期 <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.birthDate }" type="date" v-model="form.birthDate">
+                            <span class="err" v-if="errors.birthDate"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.birthDate }}</span>
+                            <span class="hint" v-else>满 16 周岁方可参赛</span>
+                        </label>
+                        <label class="field full">
+                            <span class="lbl">紧急联系人 <i class="req">*</i></span>
+                            <input class="input" :class="{ invalid: errors.emergencyContact }" v-model="form.emergencyContact" placeholder="姓名,手机号">
+                            <span class="err" v-if="errors.emergencyContact"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.emergencyContact }}</span>
+                        </label>
+                    </div>
+                </template>
+
+                <!-- 提交报名 -->
+                <template v-if="dialog === 'submit'">
+                    <div v-if="!openEvents.length" class="notice warn">
+                        <svg class="icon sm"><use href="#i-alert"></use></svg>
+                        <span>当前没有「报名中」的赛事，请先在赛事管理中新建或开放报名。</span>
+                    </div>
+                    <label class="field">
+                        <span class="lbl">选择赛事 <i class="req">*</i></span>
+                        <select class="input" :class="{ invalid: errors.eventId }" v-model.number="form.eventId">
+                            <option :value="null" disabled>请选择报名中的赛事</option>
+                            <option v-for="e in openEvents" :key="e.id" :value="e.id">
+                                {{ e.eventName }}（剩余 {{ e.remainQuota }}）
+                            </option>
+                        </select>
+                        <span class="err" v-if="errors.eventId"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.eventId }}</span>
+                    </label>
+                    <label class="field">
+                        <span class="lbl">筛选选手</span>
+                        <div class="search">
+                            <svg class="icon sm"><use href="#i-search"></use></svg>
+                            <input class="input" v-model="runnerPick" placeholder="输入姓名或身份证后四位">
+                        </div>
+                        <span class="hint">共 {{ filteredRunners.length }} 位选手可选</span>
+                    </label>
+                    <label class="field">
+                        <span class="lbl">选择选手 <i class="req">*</i></span>
+                        <select class="input" :class="{ invalid: errors.runnerId }" v-model.number="form.runnerId">
+                            <option :value="null" disabled>请选择</option>
+                            <option v-for="r in filteredRunners" :key="r.id" :value="r.id">
+                                {{ r.name }}（{{ maskId(r.idCard) }}）
+                            </option>
+                        </select>
+                        <span class="err" v-if="errors.runnerId"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.runnerId }}</span>
+                        <span class="hint" v-else-if="filteredRunners.length === 0">没有匹配的选手，请调整筛选条件</span>
+                    </label>
+                </template>
+
+                <!-- 号码布 -->
+                <template v-if="dialog === 'bib'">
+                    <div class="notice teal">
+                        <svg class="icon sm"><use href="#i-info"></use></svg>
+                        <span>号码布规则：全马 A、半马 B、迷你跑 N，后接四位序号。</span>
+                    </div>
+                    <label class="field">
+                        <span class="lbl">报名 ID</span>
+                        <input class="input mono" :value="form.registrationId" disabled>
+                    </label>
+                    <label class="field">
+                        <span class="lbl">号码布 <i class="req">*</i></span>
+                        <input class="input mono" :class="{ invalid: errors.bibNumber }" v-model.trim="form.bibNumber" placeholder="如 A0005">
+                        <span class="err" v-if="errors.bibNumber"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.bibNumber }}</span>
+                        <span class="hint" v-else>一位字母 + 三到四位数字</span>
+                    </label>
+                    <button type="button" class="btn" @click="fillSuggestBib">
+                        <svg class="icon sm"><use href="#i-refresh"></use></svg>生成建议号码
+                    </button>
+                </template>
+
+                <!-- 管理员重置选手登录密码 -->
+                <template v-if="dialog === 'resetPwd'">
+                    <div class="notice">
+                        <svg class="icon sm"><use href="#i-info"></use></svg>
+                        <span>{{ resetPwdInfo.exists ? '该选手已开通 C 端账号，重置后原密码立即失效。' : '该选手还没有 C 端账号，提交后将为其开通（登录手机号使用档案手机号）。' }}</span>
+                    </div>
+                    <label class="field">
+                        <span class="lbl">选手</span>
+                        <input class="input" :value="resetPwdInfo.runnerName + '（' + resetPwdInfo.phone + '）'" disabled>
+                    </label>
+                    <label class="field">
+                        <span class="lbl">新密码 <i class="req">*</i></span>
+                        <input class="input" :class="{ invalid: errors.resetPassword }" v-model="form.resetPassword" placeholder="6~30 位">
+                        <span class="err" v-if="errors.resetPassword"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.resetPassword }}</span>
+                        <span class="hint" v-else>请线下告知选手，密码仅存 BCrypt 密文，不可反查</span>
+                    </label>
+                </template>
+
+                <!-- 录入 / 修改成绩 -->
+                <template v-if="dialog === 'result'">
+                    <div class="notice">
+                        <svg class="icon sm"><use href="#i-info"></use></svg>
+                        <span>净成绩不能大于枪声成绩；未完赛 / 退赛不进入完赛排名。</span>
+                    </div>
+                    <label class="field">
+                        <span class="lbl">报名 ID</span>
+                        <input class="input mono" :value="form.registrationId" disabled>
+                    </label>
+                    <div class="formgrid">
+                        <label class="field">
+                            <span class="lbl">枪声成绩 <i class="req">*</i></span>
+                            <input class="input mono" :class="{ invalid: errors.chipTimeStr }" v-model.trim="form.chipTimeStr" placeholder="03:29:10">
+                            <span class="err" v-if="errors.chipTimeStr"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.chipTimeStr }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">净成绩 <i class="req">*</i></span>
+                            <input class="input mono" :class="{ invalid: errors.netTimeStr }" v-model.trim="form.netTimeStr" placeholder="03:28:40">
+                            <span class="err" v-if="errors.netTimeStr"><svg class="icon sm"><use href="#i-alert"></use></svg>{{ errors.netTimeStr }}</span>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">完赛状态</span>
+                            <select class="input" v-model.number="form.finishStatus">
+                                <option :value="1">完赛</option>
+                                <option :value="2">未完赛</option>
+                                <option :value="3">退赛</option>
+                            </select>
+                        </label>
+                        <label class="field">
+                            <span class="lbl">完赛时间</span>
+                            <input class="input" type="datetime-local" v-model="form.finishTime">
+                        </label>
+                    </div>
+                </template>
+            </div>
+
+            <div class="modal__foot">
+                <button class="btn" @click="closeDialog">取消</button>
+                <button class="btn primary" @click="submitDialog()" :disabled="saving">
+                    <span v-if="saving" class="spin"></span>
+                    {{ saving ? '保存中...' : '保存' }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 确认框 ==================== -->
+    <div v-if="confirmBox" class="mask" @click.self="confirmBox = null">
+        <div class="modal confirm">
+            <div class="confirm__body">
+                <div class="confirm__ico">
+                    <svg class="icon"><use href="#i-alert"></use></svg>
+                </div>
+                <div>
+                    <h3 style="font-size:15.5px;margin-bottom:6px">{{ confirmBox.title }}</h3>
+                    <p>{{ confirmBox.text }}</p>
+                </div>
+            </div>
+            <div class="modal__foot">
+                <button class="btn" @click="confirmBox = null">再想想</button>
+                <button class="btn danger-btn" @click="runConfirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 详情抽屉 ==================== -->
+    <div v-if="drawer" class="mask" @click.self="closeDrawer" style="justify-content:flex-end;padding:0">
+        <aside class="drawer">
+            <div class="drawer__head">
+                <div>
+                    <h3>{{ drawer.title }}</h3>
+                    <p class="sub">{{ drawer.sub }}</p>
+                </div>
+                <button class="modal__x" @click="closeDrawer" aria-label="关闭">
+                    <svg class="icon"><use href="#i-x"></use></svg>
+                </button>
+            </div>
+            <div class="drawer__body">
+                <dl class="deflist">
+                    <template v-for="row in drawer.rows" :key="row.label">
+                        <div>
+                            <dt>{{ row.label }}</dt>
+                            <dd :class="[row.mono ? 'mono' : '', row.cls]">{{ row.value }}</dd>
+                        </div>
+                    </template>
+                </dl>
+                <template v-if="drawer.extra">
+                    <div style="margin-top:20px">
+                        <div class="section-head" style="margin:0 0 10px">
+                            <h2 style="font-size:14px">名额进度</h2>
+                        </div>
+                        <div class="meter">
+                            <div class="meter__fill" :style="{ width: drawer.extra.pct + '%' }"></div>
+                        </div>
+                        <p class="dim" style="margin-top:7px">{{ drawer.extra.text }}</p>
+                    </div>
+                </template>
+            </div>
+            <div class="drawer__foot">
+                <button class="btn" @click="closeDrawer">关闭</button>
+                <button class="btn primary" v-if="drawer.action" @click="drawer.action.run">
+                    {{ drawer.action.label }}
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- ==================== 证书预览 ==================== -->
+    <div v-if="certPreview" class="mask" @click.self="certPreview = null" style="justify-content:center">
+        <div class="modal wide" style="max-width:560px">
+            <div class="modal__head">
+                <div>
+                    <h3>完赛证书预览</h3>
+                    <p class="sub">B 端签发预览，与选手端看到的样式一致</p>
+                </div>
+                <button class="modal__x" @click="certPreview = null" aria-label="关闭">
+                    <svg class="icon"><use href="#i-x"></use></svg>
+                </button>
+            </div>
+            <div class="modal__body" style="background:var(--canvas)">
+                <div class="cert">
+                    <div class="cert__head">CERTIFICATE OF COMPLETION</div>
+                    <div class="cert__name">{{ certPreview.runnerName }}</div>
+                    <div class="cert__title">完赛证书</div>
+                    <div class="cert__grid">
+                        <div><span>赛事</span><b style="font-size:13px">{{ certPreview.eventName }}</b></div>
+                        <div><span>日期</span><b class="mono">{{ certPreview.eventDate }}</b></div>
+                        <div><span>号码布</span><b class="mono">{{ certPreview.bibNumber }}</b></div>
+                        <div><span>净成绩</span><b class="mono">{{ certPreview.netTimeStr }}</b></div>
+                        <div><span>枪声成绩</span><b class="mono">{{ formatSeconds(certPreview.chipTime) }}</b></div>
+                        <div><span>名次</span><b class="num">{{ certPreview.rank || '—' }}</b></div>
+                    </div>
+                    <div class="cert__event">{{ certPreview.eventName }}</div>
+                    <div class="dim" style="font-size:11.5px">完赛时间 {{ certPreview.finishTime || '—' }}</div>
+                    <div class="cert__seal">完赛<br>认证</div>
+                </div>
+            </div>
+            <div class="modal__foot">
+                <button class="btn" @click="certPreview = null">关闭</button>
+                <button class="btn primary" @click="printCertPreview">
+                    <svg class="icon sm"><use href="#i-download"></use></svg>打印
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Toast ==================== -->
+    <div class="toasts">
+        <div v-for="t in toasts" :key="t.id" class="toast" :class="t.type">
+            <svg class="icon sm">
+                <use :href="t.type === 'err' ? '#i-alert' : (t.type === 'info' ? '#i-info' : '#i-check-c')"></use>
+            </svg>
+            <span>{{ t.text }}</span>
+        </div>
+    </div>
+
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

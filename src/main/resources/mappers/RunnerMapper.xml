@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ape.springboot_01_marathon.dao.RunnerMapper">
+
+    <!-- age 用 MySQL 函数算，虚拟字段不落库 -->
+    <sql id="runnerColumns">
+        id, name, gender, id_card, phone, birth_date, emergency_contact, create_time,
+        TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) AS age
+    </sql>
+
+    <insert id="insert" parameterType="com.ape.springboot_01_marathon.pojo.Runner"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO runner (name, gender, id_card, phone, birth_date, emergency_contact)
+        VALUES (#{name}, #{gender}, #{idCard}, #{phone}, #{birthDate}, #{emergencyContact})
+    </insert>
+
+    <update id="update" parameterType="com.ape.springboot_01_marathon.pojo.Runner">
+        UPDATE runner
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="idCard != null">id_card = #{idCard},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="birthDate != null">birth_date = #{birthDate},</if>
+            <if test="emergencyContact != null">emergency_contact = #{emergencyContact},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM runner WHERE id = #{id}
+    </delete>
+
+    <select id="selectPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.RunnerQuery"
+            resultType="com.ape.springboot_01_marathon.pojo.Runner">
+        SELECT <include refid="runnerColumns"/>
+        FROM runner
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="gender != null">
+                AND gender = #{gender}
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.RunnerQuery"
+            resultType="long">
+        SELECT COUNT(*)
+        FROM runner
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="phone != null and phone != ''">
+                AND phone LIKE CONCAT('%', #{phone}, '%')
+            </if>
+            <if test="gender != null">
+                AND gender = #{gender}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultType="com.ape.springboot_01_marathon.pojo.Runner">
+        SELECT <include refid="runnerColumns"/>
+        FROM runner WHERE id = #{id}
+    </select>
+
+    <select id="existsIdCard" resultType="int">
+        SELECT COUNT(*)
+        FROM runner
+        WHERE id_card = #{idCard}
+        <if test="excludeId != null">
+            AND id &lt;&gt; #{excludeId}
+        </if>
+    </select>
+
+    <!--
+      删除选手前的「有效报名」检查：只数 status = 1。
+      取消报名已经物理删除记录，所以 status=2 的行不再存在，
+      这里只查有效报名即可，口径与 cancel 的物理删除保持一致。
+
+      历史残留行（老数据里 status=2 但行还在）由
+      RegistrationMapper.deleteOrphanRegistrations 兜底清理。
+    -->
+    <select id="countActiveRegistration" resultType="int">
+        SELECT COUNT(*) FROM registration
+        WHERE runner_id = #{runnerId} AND status = 1
+    </select>
+
+</mapper>

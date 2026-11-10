@@ -1,0 +1,400 @@
+springboot_01_marathon —— 马拉松赛事管理系统
+================================================================
+
+双端架构
+----------------------------------------------------------------
+一套 Spring Boot 后端 + 两套前端，共用同一份参赛记录，按角色控制可见字段。
+
+  B 端（管理台 · 面向组委会/管理员）   http://localhost:8080/
+    工作台 / 赛事管理 / 选手管理 / 报名管理 / 成绩排名
+    现场运营：现场检录 / 证书签发
+    登录：admin / 123456
+
+  C 端（移动端 · 面向参赛选手）        http://localhost:8080/m/
+    赛事广场 / 报名 / 我的报名 / 电子号码布 / 我的成绩 / 完赛证书 / 排行榜
+    注册即建档（手机号 + 密码）
+
+接口分区：
+  /api/public/**   免登录只读（赛事浏览、公开榜单）
+  /api/member/**   选手登录态（scope=member 的 Token）
+  /api/** 其余     管理员 Token（scope=admin），原有 26 个接口一个没改
+
+详细职责划分见《双端职责划分设计.md》。
+
+技术栈
+----------------------------------------------------------------
+JDK                 17（⚠️ 见下方「踩过的坑」，JDK 21 下 lombok 会崩）
+Spring Boot         3.0.2
+MyBatis             mybatis-spring-boot-starter 3.0.0（XML 映射方式）
+MySQL               marathon_db
+鉴权                自定义拦截器 + 内存 Token（非 Spring Security）
+构建                Maven
+
+数据库
+----------------------------------------------------------------
+账号 root / zxcv1234，库名 marathon_db（注意不是 my_db）
+
+7 张表：
+  admin           管理员
+  marathon_event  赛事
+  runner          选手
+  registration    报名（user1个 runner 可有多条）
+  result          成绩（注意 result 是 MySQL 保留字，SQL 里用反引号）
+  member_account  C端选手账号（手机号唯一，关联 runner_id）
+  注：result 表通过 registration_id 关联报名记录
+
+registration 表多一列 checkin_time（检录核销时间）；
+result 表多一列 cert_issued（完赛证书签发时间）。
+
+现有数据（2026-10-29 实测）：
+  admin 1 条 / marathon_event 2 条（id=4 西安全马 status=2比赛中、id=19 2027半马 status=0报名中）
+  runner 5 条 / registration 4 条 / result 3 条 / member_account 0 条
+  登录账号 admin / 123456
+  ⚠️ member_account 是 0 条 —— 5 个选手档案都是 B 端建的，尚未开通 C 端账号，
+     需要管理员在「选手管理 → 重置密码」里开通（见下方「选手登录账号」一节）。
+
+
+目录结构
+----------------------------------------------------------------
+src/main/java/com/ape/springboot_01_marathon/
+├── Springboot01MarathonApplication.java
+├── common/                通用工具与统一返回
+│   ├── Result.java统一返回 {code, msg, data}
+│   ├── ErrorCode.java     错误码常量
+│   ├── BusinessException  业务异常
+│   ├── GlobalExceptionHandler 全局异常处理
+│   ├── PageResult.java分页结果
+│   ├── TokenManager.java  Token 管理（内存实现）
+│   └── MyUtil.java
+├── config/
+│   ├── AuthInterceptor登录拦截器
+│   ├── WebConfig.java     拦截器注册 + CORS
+│   └── PasswordConfig.java BCrypt 密码编码
+├── controller/            6 个 Controller，26 个接口
+│   ├── AdminController        /api/admin
+│   ├── EventController        /api/event
+│   ├── RunnerController       /api/runner
+│   ├── RegistrationController /api/register
+│   ├── ResultController       /api/result
+│   └── StatisticsController   /api/statistics
+├── service/ + service/impl/ 业务层
+├── dao/                   Mapper 接口
+└── pojo/
+    ├── *                  实体
+    ├── dto/               入参（LoginDTO、PageQuery、*Query）
+    └── vo/                出参（*VO）
+
+src/main/resources/
+├── application.yaml       数据源 + MyBatis 配置
+└── mappers/*.xml          6 个 Mapper XML
+
+
+接口速查（26 个）
+----------------------------------------------------------------
+认证    POST   /api/admin/login            登录（唯一免 Token）
+        POST   /api/admin/logout退出
+        GET    /api/admin/info            当前登录人
+
+赛事    POST   /api/event/add              新增
+        PUT    /api/event/update           修改
+        GET    /api/event/list             分页查询
+        GET    /api/event/detail/{id}      详情
+        DELETE /api/event/delete/{id}      删除
+
+选手    POST   /api/runner/add             新增（校验最严）
+        PUT    /api/runner/update
+        GET    /api/runner/list
+        GET    /api/runner/detail/{id}
+        DELETE /api/runner/delete/{id}
+
+报名    POST   /api/register/submit         提交报名
+        POST   /api/register/cancel         取消报名（物理删除）
+        PUT    /api/register/bib            分配号码布
+        DELETE /api/register/bib            清空号码布
+        GET    /api/register/list
+        GET    /api/register/detail/{id}
+
+成绩    POST   /api/result/input           录入成绩
+        PUT    /api/result/update
+        GET    /api/result/eventRanking/{eventId}    总排名
+        GET    /api/result/genderRanking/{eventId}   男女分组
+        GET    /api/result/ageRanking/{eventId}      年龄分组
+        GET    /api/result/list
+
+统计    GET    /api/statistics/eventOverview/{eventId}
+
+C端公开（免登录）
+        GET    /api/public/events             公开赛事列表
+        GET    /api/public/events/{id}        公开赛事详情
+        GET    /api/public/events/{id}/rankings  公开榜单 total/gender/age
+        GET    /api/public/events/{id}/stats  赛事统计
+
+C端选手（scope=member）
+        POST   /api/member/register           注册（建档+建账号）
+        POST   /api/member/login              登录
+        POST   /api/member/logout
+        GET    /api/member/profile            我的资料
+        PUT    /api/member/profile            改资料
+        PUT    /api/member/password           修改登录密码（需原密码）
+        GET    /api/member/registrations      我的报名
+        POST   /api/member/events/{id}/register   我要报名
+        POST   /api/member/registrations/{id}/cancel  取消我的报名
+        GET    /api/member/results            我的成绩
+        GET    /api/member/certificates/{regId}  我的完赛证书
+
+B端选手账号管理（管理员）
+        GET    /api/member-account/status/{runnerId}  账号开通状态
+        POST   /api/member-account/reset/{runnerId}   开通账号或重置密码
+
+B端现场运营
+        POST   /api/checkin                    检录核销（按 id 或号码布）
+        GET    /api/checkin/progress/{eventId} 检录进度
+        GET    /api/certificate/list/{eventId} 可签发证书名单
+        POST   /api/certificate/issue         批量签发证书
+
+
+赛事状态机（重点）
+----------------------------------------------------------------
+common/EventStatus.java 是唯一的真相来源，Service 层不写裸数字。
+
+    0 报名中 ──截止报名──▶ 1 报名截止 ──开赛──▶ 2 比赛中 ──完赛──▶ 3 已结束
+        ▲                      │
+        └──────重新开放────────┘
+
+各状态允许的操作：
+    状态          报名   检录   录/改成绩   签证书
+    0 报名中      可     不可    不可        不可
+    1 报名截止    不可   可      不可        不可
+    2 比赛中      不可   可      可          不可
+    3 已结束      不可   不可    不可        可
+
+流转规则（EventStatus.assertTransition）：
+    允许  0→1    截止报名
+          1→0    重新开放报名
+          1→2    开赛
+          2→3    完赛
+    拒绝  0→2 / 0→3   跨档（必须先截止报名）
+          2→1           回退（成绩已录入）
+          3→*           已结束是终态
+
+「已结束」是终态的原因：成绩已公示，回退会造成排行榜口径不一致。
+
+⚠️ 这个状态机是补上的，之前有三个真实问题：
+   1) 状态只有 3 档（0报名中/1报名截止/2已结束），缺「比赛中」——
+      报名截止后没有地方能表达「比赛正在进行，成绩可以录了」。
+   2) MarathonEventServiceImpl.checkEvent 里写的是
+      `status < 0 && status > 2`，条件永远为 false，状态校验完全失效。
+   3) ResultServiceImpl.input/update 压根不校验赛事状态 ——
+      赛事还在报名中就能录成绩。
+      实测库里就有脏数据：赛事 status=0报名中 却已有 3 条成绩。
+      （已由 tools/migrate_event_status.py 修正为 status=2比赛中）
+
+前端对应处理：
+   B 端  赛事编辑弹窗的状态下拉只列出「从当前状态合法可达」的状态
+         （eventStatusOptions 计算属性），选不出会被后端拒绝的组合。
+   B 端  成绩录入/修改前先查赛事状态，不合规直接 toast 拦下
+         （checkResultEventState），后端再兜一层。
+   C 端  赛事详情页的报名按钮按状态分别显示
+         「立即报名 / 报名已截止 / 比赛进行中 / 赛事已结束」。
+
+
+选手登录账号（密码存在哪）
+----------------------------------------------------------------
+runner 表<b>没有</b> password 字段，密码存在 member_account 表里。
+
+为什么单独建表：
+   1) runner 是「选手档案」，B 端维护；现实中「单位统一报名」很常见，
+      一条档案可能对应多人共用手机号；
+   2) 手机号在 C 端是登录账号必须唯一，而 runner.phone 并不唯一
+      （库里就有 13800138000 被两个选手共用）——
+      直接给 runner.phone 加唯一索引会破坏既有数据；
+   3) 账号与档案 1:1，通过 runner_id 关联，职责清晰：
+      档案存比赛信息，账号存登录凭据。
+   密码用 BCrypt（Spring Security 的 PasswordEncoder），
+   密文带随机盐，MemberAccount.password 上标了 @JsonIgnore 绝不吐给前端。
+
+两套改密入口：
+   选手自己改   PUT /api/member/password
+                需校验原密码 —— 否则拿到 Token 的人就能直接把密码改掉。
+   管理员重置   POST /api/member-account/reset/{runnerId}
+                不需要原密码（管理员是可信方），幂等：
+                账号不存在→开通（登录手机号取档案手机号）；
+                账号已存在→重置密码（登录手机号不变）。
+
+⚠️ 管理员重置这个入口解决的是一个真实的业务断裂：
+   管理员在 B 端建的选手档案，选手在 C 端<b>永远登不进去</b> ——
+   注册会被「该身份证已建过档案」挡掉，登录又没有账号。
+   现在管理员可以在「选手管理 → 重置密码」里开通或重置。
+
+
+错误码约定
+----------------------------------------------------------------
+所有错误场景的 HTTP 状态码都是 200，错误在 body 的 code 字段里。
+
+200    操作成功
+400    参数校验失败
+40100  未登录或 Token 失效
+40101  账号或密码错误
+404    资源不存在
+500    业务失败或系统异常
+
+
+鉴权机制（重点）
+----------------------------------------------------------------
+Token 已泛化成「带 scope 的主体」，两端凭据严格隔离：
+  scope=admin   → userId = admin.id   （B 端管理台）
+  scope=member  → userId = runner.id  （C 端选手端）
+两端 Token 互不通用，拿错会被直接拒绝（verify(token, scope) 比对不上返回 null）。
+
+拦截器分工：
+  AuthInterceptor       拦 /api/**，排除 /api/public/** 与 /api/member/**
+  MemberAuthInterceptor 只拦 /api/member/**，校验 scope=member
+  /api/public/** 完全放行，游客可读
+
+Token 传法（都实测过）：
+  Header: Authorization: Bearer {token}
+  Header: Authorization: {token}      裸 token 也行
+  Query : ?token={token}
+
+Token 存在 ConcurrentHashMap 内存里，**服务重启即全部失效**，
+多实例部署时也无效（A 实例发的 Token 到 B 实例查不到）。
+生产环境应换成 Redis 或 JWT。
+
+⚠️ 修改过TokenManager：之前 EXPIRE_MILLIS（2小时）定义了却没用上，
+   verify() 只查 key 存在与否，Token 实际永不过期。已补上过期判断。
+   注意：改完必须重启服务才能生效，重启后要重新登录。
+
+⚠️ **已修**：ResultServiceImpl.page() 原来只兜底了 pageNum / pageSize，
+   没调 query.normalize()，offset 一直是默认值 0，
+   导致 GET /api/result/list 翻到第 2 页返回的还是第 1 页的数据。
+   已改为统一走 normalize()，与其他 Service 的分页口径一致。
+
+
+踩过的坑
+----------------------------------------------------------------
+⚠️ **局部更新被当成全量更新校验**：
+   EventMapper.xml 的 update 是动态 SQL（`<if test="xxx != null">`），
+   只更新传了的字段。但 MarathonEventServiceImpl.checkEvent 无论新增还是更新
+   都要求 eventName 非空，结果「只改状态」这种局部更新会被误判成
+   「赛事名称不能为空」。
+   → 现在必填项只在新增时校验，更新时只校验「传了但格式不对」的情况。
+
+⚠️ **用 && 写范围判断**：
+   `status < 0 && status > 2` —— 永远为 false，等于完全没校验。
+   这种条件要写成 `status < 0 || status > 2`，或者干脆交给枚举/常量类收口
+   （现在统一用 EventStatus.isValid）。
+
+⚠️ **MyBatis XML 里写 `AS rank` 会报 SQL 语法错**：
+   rank 是 MySQL 8 保留字，必须写成 AS `rank`。
+   同理 result、order、key 等都不能裸用。
+   另外 SQL 里的 `<` 在 XML 里必须转义成 `&lt;`，否则整个应用启动就挂：
+   SAXParseException: 元素内容必须由格式正确的字符数据或标记组成。
+   → 已加体检脚本，改完 Mapper 跑一遍：
+     python tools/check-mappers.py src/main/resources
+
+⚠️ **UPDATE 时不能从同一张表里 SELECT**：
+   UPDATE result SET cert_issued=NOW() WHERE registration_id IN (SELECT ... FROM result ...)
+   会报 1093「You can't specify target table 'result' for update in FROM clause」。
+   改成 UPDATE result res INNER JOIN registration reg ON ... 就好了。
+
+⚠️ **LEFT JOIN 查不到成绩时，MyBatis 仍会造一个空对象出来**。
+   resultMap 里的 association 在所有列都是 null 时也会 new 一个实例，
+   于是前端 `if (r.result)` 判断成立，把「没成绩」当成「有成绩但未完赛」。
+   → Service 层要显式置空：
+     if (vo.getResult() != null && vo.getResult().getId() == null) vo.setResult(null);
+
+⚠️ **JDK 21 下编译会崩**：NoSuchFieldError: JCImport.qualid
+   pom 里 lombok 没锁版本，Boot 3.0.2 的 BOM 给的是 1.18.24，< 1.18.30 都不兼容 JDK 21。
+   本机用 C:\Program Files\Java\jdk-17 启动可绕过。根治办法是给 lombok 锁 1.18.30。
+
+⚠️ **mvn spring-boot:run 会报 BUILD SUCCESS 后直接退出**，但 app 进程脱离 Maven 继续跑，
+   日志拿不到。8080 上常残留孤儿 java 进程，排查前先 taskkill 全部 java.exe 清理干净，
+   否则测的是旧代码。
+
+⚠️ **devtools 的 restartPort 是随机端口**，可能被其他程序占用 → Port 57792 was already in use。
+   启动时加 -Dspring.devtools.restart.enabled=false 可规避。
+
+⚠️ pom 里 spring-boot-maven-plugin 配了 <skip>true</skip>，
+   mvn package 打出来的是没有主清单的普通 jar，java -jar 会报"没有主清单属性"。
+
+⚠️ 外键约束：删选手前必须先取消报名。GlobalExceptionHandler 会把 MySQL 的
+   1451 报错翻译成「该选手还有 N 条有效报名，无法删除」。
+
+
+前端（Vue 3 CDN 版，无构建步骤）
+----------------------------------------------------------------
+src/main/resources/static/
+├── index.html      B 端页面结构 + 内联 SVG 图标精灵
+├── style.css       B 端设计系统
+├── app.js          B 端交互逻辑
+├── m/              C 端（移动端优先，单列布局 + 底部 tab 导航）
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+└── vendor/vue.global.prod.js   本地化的 Vue，离线也能跑
+
+技术选型：
+  Vue 3.4.21 global build（runtime + 编译器，直接读 DOM 里的模板）
+  无前端框架、无 npm 构建，改完刷新即可生效
+  图表全部用纯 SVG / CSS 手绘，没有引入 Chart.js 之类第三方库
+
+界面能力：
+  B 端  工作台(KPI+图表) / 赛事 / 选手 / 报名 / 成绩排名
+        现场运营：现场检录（按号码布核销+进度）、证书签发（批量+预览+导出）
+  C 端  赛事广场 / 赛事详情 / 报名 / 我的报名 / 电子号码布 / 我的成绩
+        完赛证书 / 排行榜 / 个人中心 / 资料编辑
+  两端都有：表单内联校验、hash 深链、响应式、CSV 导出
+
+⚠️ 前端模板的两个坑（都踩过）：
+   1) 属性里写中文 + 单引号表达式时，写文件容易掉一个引号，
+      表现是页面整页白屏（Vue 运行时编译抛 SyntaxError，new Function 失败）。
+      报错位置指向 document.write 的行号，和真正出错的属性对不上，很难查。
+      规避：属性里别写复杂的中文表达式，交给 JS 算好再绑定（如 :title="b.title"）。
+      体检脚本（改完 HTML 每次都跑，比开浏览器快几十倍）：
+        node tools/check-template.mjs src/main/resources/static/index.html
+        node tools/check-template.mjs src/main/resources/static/m/index.html
+      脚本会自己回退到共享 node workspace 找依赖，项目里不用塞 node_modules。
+   2) 同一个元素上不能有两个 :class，Vue 模板编译器报 Duplicate attribute。
+      合成数组写法：:class="[row.mono ? 'mono' : '', row.cls]"
+
+⚠️ **Spring Boot 的 welcome page 只对根路径 / 生效**。
+   访问 /m/ 会直接 404（Whitelabel Error Page）——静态资源处理器不做
+   「目录 → index.html」的解析，文件明明在 target/classes/static/m/ 里也没用。
+   → 已在 WebConfig.addViewControllers() 里加转发：
+       registry.addViewController("/m").setViewName("forward:/m/index.html");
+       registry.addViewController("/m/").setViewName("forward:/m/index.html");
+     用 forward 不用 redirect：URL 保持 /m/，页面里的绝对路径引用
+     （/m/style.css、/vendor/...）不受影响。
+   改完记得重启才生效（ViewController 是在启动时注册的）。
+
+⚠️ 本地跑起来（Windows）：
+   ① JDK 17（本项目 lombok 1.18.24 在 JDK 21 下会崩）
+   ② mvn spring-boot:run 会在 BUILD SUCCESS 后退出但进程还在，日志拿不到，
+      且 devtools 的随机 restartPort 可能撞端口。
+      建议手工起：mvn dependency:build-classpath -Dmdep.outputFile=target/cp.txt
+                  java -Dserver.port=8080 -cp "target/classes;$(cat target/cp.txt)" \
+                       com.ape.springboot_01_marathon.Springboot01MarathonApplication
+      （devtools 要从 classpath 里剔掉，否则随机管理端口会占用失败）
+   ③ 改完前端文件记得同步到 target/classes/static/，或直接 mvn compile
+
+
+测试相关文件
+----------------------------------------------------------------
+ApiFox_测试文档_springboot_01_marathon.md   26 个接口的完整测试说明
+springboot_01_marathon-openapi.json          OpenAPI 规范，可导入 ApiFox
+
+tools/ 目录（自检脚本）
+----------------------------------------------------------------
+check-template.mjs        前端模板体检：属性引号配对 + Vue 模板编译 + render function 语法
+                          改完 index.html 必跑，比开浏览器快几十倍
+                            node tools/check-template.mjs src/main/resources/static/index.html
+check-mappers.py           Mapper XML 体检：XML 格式 + SQL 保留字
+                            python tools/check-mappers.py src/main/resources
+migrate_event_status.py    赛事状态机迁移（3 档→4 档），幂等可重复跑
+                            python tools/migrate_event_status.py --dry-run   只看计划
+                            python tools/migrate_event_status.py             实际执行
+test_state_machine.py      状态机专项验收（39 条断言）
+                            python tools/test_state_machine.py http://127.0.0.1:8080
+                          覆盖：状态流转规则、成绩/检录/证书门禁、改密、
+                          管理员开通账号、权限隔离
+                          ⚠️ 脚本用 SM- 前缀建测试赛事，跑完会自动清理

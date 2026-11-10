@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ape.springboot_01_marathon.dao.StatisticsMapper">
+
+    <select id="countGroupByFinishStatus" resultType="java.util.HashMap">
+        SELECT res.finish_status AS finishStatus, COUNT(*) AS cnt
+        FROM `result` res
+                 INNER JOIN registration reg ON res.registration_id = reg.id
+        WHERE reg.event_id = #{eventId}
+        GROUP BY res.finish_status
+    </select>
+
+    <select id="countGroupByGender" resultType="java.util.HashMap">
+        SELECT rn.gender AS gender, COUNT(*) AS cnt
+        FROM registration reg
+                 INNER JOIN runner rn ON reg.runner_id = rn.id
+        WHERE reg.event_id = #{eventId} AND reg.status = 1
+        GROUP BY rn.gender
+    </select>
+
+</mapper>

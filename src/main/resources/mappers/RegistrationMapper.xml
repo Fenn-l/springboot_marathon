@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ape.springboot_01_marathon.dao.RegistrationMapper">
+
+    <!-- 关联查询：报名 + 选手 + 赛事，一次查完避免 N+1 -->
+    <resultMap id="voMap" type="com.ape.springboot_01_marathon.pojo.vo.RegistrationVO">
+        <id property="id" column="id"/>
+        <result property="eventId" column="event_id"/>
+        <result property="runnerId" column="runner_id"/>
+        <result property="bibNumber" column="bib_number"/>
+        <result property="registerTime" column="register_time"/>
+        <result property="payStatus" column="pay_status"/>
+        <result property="status" column="status"/>
+
+        <association property="runner"
+                     javaType="com.ape.springboot_01_marathon.pojo.vo.RegistrationVO$SimpleRunner">
+            <id property="id" column="r_id"/>
+            <result property="name" column="r_name"/>
+            <result property="gender" column="r_gender"/>
+            <result property="phone" column="r_phone"/>
+        </association>
+
+        <association property="event"
+                     javaType="com.ape.springboot_01_marathon.pojo.vo.RegistrationVO$SimpleEvent">
+            <id property="id" column="e_id"/>
+            <result property="eventName" column="e_name"/>
+            <result property="eventDate" column="e_date"/>
+        </association>
+    </resultMap>
+
+    <sql id="joinColumns">
+        reg.id, reg.event_id, reg.runner_id, reg.bib_number, reg.register_time,
+        reg.pay_status, reg.status,
+        r.id AS r_id, r.name AS r_name, r.gender AS r_gender, r.phone AS r_phone,
+        e.id AS e_id, e.event_name AS e_name, e.event_date AS e_date
+    </sql>
+
+    <insert id="insert" parameterType="com.ape.springboot_01_marathon.pojo.Registration"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO registration (event_id, runner_id, pay_status, status)
+        VALUES (#{eventId}, #{runnerId}, 0, 1)
+    </insert>
+
+    <!--
+      取消报名：<b>物理删除</b>这一行，不是 UPDATE 标记 status=2。
+
+      原因：registration.runner_id 上有外键 REFERENCES runner(id)，
+      外键只看「行是否存在」，不看 status。留着 status=2 的行会让选手永远删不掉（1451）。
+
+      附带好处：号码布、支付状态一起消失，不需要单独清 bib_number
+      （物理删除后不会有「清成 NULL 还是空串」的纠结）。
+
+      Service 层已前置校验「有成绩的报名不允许取消」，所以不会孤立 result 记录。
+      WHERE 里保留 status = 1 做双重保险，避免并发下误删已取消的。
+    -->
+    <delete id="cancel">
+        DELETE FROM registration WHERE id = #{id} AND status = 1
+    </delete>
+
+    <update id="assignBibNumber">
+        UPDATE registration SET bib_number = #{bibNumber}
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <!--
+      清空号码布：置回 NULL 而不是空字符串。
+      因为 bib_number 上有唯一索引，多个 NULL 之间不冲突（MySQL 允许），
+      如果写成空字符串，第二个记录就会撞唯一索引。
+    -->
+    <update id="clearBibNumber">
+        UPDATE registration SET bib_number = NULL
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <update id="markPaid">
+        UPDATE registration SET pay_status = 1
+        WHERE id = #{id} AND status = 1 AND pay_status = 0
+    </update>
+
+    <select id="maxBibSeq" resultType="java.lang.Integer">
+        SELECT MAX(CAST(SUBSTRING(bib_number, 2) AS UNSIGNED))
+        FROM registration
+        WHERE event_id = #{eventId}
+          AND bib_number LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <select id="existsResult" resultType="int">
+        SELECT COUNT(*) FROM `result` WHERE registration_id = #{registrationId}
+    </select>
+
+    <select id="selectPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.RegistrationQuery"
+            resultMap="voMap">
+        SELECT <include refid="joinColumns"/>
+        FROM registration reg
+        LEFT JOIN runner r ON reg.runner_id = r.id
+        LEFT JOIN marathon_event e ON reg.event_id = e.id
+        <where>
+            <if test="eventId != null">
+                AND reg.event_id = #{eventId}
+            </if>
+            <if test="name != null and name != ''">
+                AND r.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="payStatus != null">
+                AND reg.pay_status = #{payStatus}
+            </if>
+            <if test="status != null">
+                AND reg.status = #{status}
+            </if>
+        </where>
+        ORDER BY reg.id DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" parameterType="com.ape.springboot_01_marathon.pojo.dto.RegistrationQuery"
+            resultType="long">
+        SELECT COUNT(*)
+        FROM registration reg
+        LEFT JOIN runner r ON reg.runner_id = r.id
+        <where>
+            <if test="eventId != null">
+                AND reg.event_id = #{eventId}
+            </if>
+            <if test="name != null and name != ''">
+                AND r.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="payStatus != null">
+                AND reg.pay_status = #{payStatus}
+            </if>
+            <if test="status != null">
+                AND reg.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectDetailById" resultMap="voMap">
+        SELECT <include refid="joinColumns"/>
+        FROM registration reg
+        LEFT JOIN runner r ON reg.runner_id = r.id
+        LEFT JOIN marathon_event e ON reg.event_id = e.id
+        WHERE reg.id = #{id}
+    </select>
+
+    <select id="selectById" resultType="com.ape.springboot_01_marathon.pojo.Registration">
+        SELECT * FROM registration WHERE id = #{id}
+    </select>
+
+    <select id="existsByEventAndRunner" resultType="int">
+        SELECT COUNT(*) FROM registration
+        WHERE event_id = #{eventId} AND runner_id = #{runnerId}
+    </select>
+
+    <select id="countByEvent" resultType="int">
+        SELECT COUNT(*) FROM registration WHERE event_id = #{eventId} AND status = 1
+    </select>
+
+    <select id="countRegisterByEvent" resultType="int">
+        SELECT COUNT(*) FROM registration WHERE event_id = #{eventId} AND status = 1
+    </select>
+
+    <!--
+      选手名下的报名总行数（不限状态）。
+      用于删除选手前判断是否有历史残留记录需要清理。
+    -->
+    <select id="countAllByRunner" resultType="int">
+        SELECT COUNT(*) FROM registration WHERE runner_id = #{runnerId}
+    </select>
+
+    <select id="countRegisterByGender" resultType="int">
+        SELECT COUNT(*)
+        FROM registration reg
+        INNER JOIN runner r ON reg.runner_id = r.id
+        WHERE reg.event_id = #{eventId}
+          AND reg.status = 1
+          AND r.gender = #{gender}
+    </select>
+
+    <!-- 赛事名下的报名总行数（不限状态），用于删除赛事前判断残留 -->
+    <select id="countAllByEvent" resultType="int">
+        SELECT COUNT(*) FROM registration WHERE event_id = #{eventId}
+    </select>
+
+    <!--
+      清理「没有成绩的历史报名记录」。
+      NOT EXISTS 保证有成绩的记录绝不会被误删 ——
+      有成绩说明它是赛事数据的一部分，不该被随手清掉。
+      result 是保留字，要加反引号。
+    -->
+    <delete id="deleteOrphanRegistrations">
+        DELETE FROM registration
+        WHERE runner_id = #{runnerId}
+          AND NOT EXISTS (
+              SELECT 1 FROM `result` res
+              WHERE res.registration_id = registration.id
+          )
+    </delete>
+
+    <!-- 赛事侧的同款清理，用于删除赛事时清掉历史残留 -->
+    <delete id="deleteOrphanRegistrationsByEvent">
+        DELETE FROM registration
+        WHERE event_id = #{eventId}
+          AND NOT EXISTS (
+              SELECT 1 FROM `result` res
+              WHERE res.registration_id = registration.id
+          )
+    </delete>
+
+    <!--
+      C 端「我的报名」的结果映射。
+      成绩是嵌套对象，用 association 映射到 MyRegistrationVO.result。
+    -->
+    <resultMap id="myRegistrationMap" type="com.ape.springboot_01_marathon.pojo.vo.MyRegistrationVO">
+        <id property="id" column="id"/>
+        <result property="eventId" column="event_id"/>
+        <result property="bibNumber" column="bib_number"/>
+        <result property="registerTime" column="register_time"/>
+        <result property="payStatus" column="pay_status"/>
+        <result property="status" column="status"/>
+        <result property="eventName" column="event_name"/>
+        <result property="eventType" column="event_type"/>
+        <result property="eventDate" column="event_date"/>
+        <result property="startLocation" column="start_location"/>
+        <result property="distanceKm" column="distance_km"/>
+        <result property="entryFee" column="entry_fee"/>
+        <result property="eventStatus" column="event_status"/>
+        <result property="checkinTime" column="checkin_time"/>
+
+        <association property="result"
+                     javaType="com.ape.springboot_01_marathon.pojo.vo.MyResultVO">
+            <id property="id" column="result_id"/>
+            <result property="registrationId" column="id"/>
+            <result property="eventId" column="event_id"/>
+            <result property="eventName" column="event_name"/>
+            <result property="eventDate" column="event_date"/>
+            <result property="bibNumber" column="bib_number"/>
+            <result property="chipTime" column="chip_time"/>
+            <result property="netTime" column="net_time"/>
+            <result property="finishStatus" column="finish_status"/>
+            <result property="finishTime" column="finish_time"/>
+        </association>
+    </resultMap>
+
+    <!--
+      C 端「我的报名」：联表带出赛事信息与成绩。
+      成绩用 LEFT JOIN，没出成绩的报名也要出现在列表里（选手要看报名状态）。
+      result 是保留字，要加反引号。
+    -->
+    <select id="selectByRunnerId" resultMap="myRegistrationMap">
+        SELECT reg.id,
+               reg.event_id,
+               reg.bib_number,
+               reg.register_time,
+               reg.pay_status,
+               reg.status,
+               reg.checkin_time,
+               e.event_name,
+               e.event_type,
+               e.event_date,
+               e.start_location,
+               e.distance_km,
+               e.entry_fee,
+               e.status AS event_status,
+               res.id            AS result_id,
+               res.chip_time     AS chip_time,
+               res.net_time      AS net_time,
+               res.finish_status AS finish_status,
+               res.finish_time   AS finish_time
+        FROM registration reg
+        INNER JOIN marathon_event e ON reg.event_id = e.id
+        LEFT JOIN `result` res ON res.registration_id = reg.id
+        WHERE reg.runner_id = #{runnerId}
+        ORDER BY e.event_date DESC, reg.id DESC
+    </select>
+
+    <!-- 现场检录核销：已取消的报名（status != 1）不允许核销 -->
+    <update id="markCheckin">
+        UPDATE registration
+        SET checkin_time = NOW()
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <!-- 检录进度：已核销人数 -->
+    <select id="countCheckinByEvent" resultType="int">
+        SELECT COUNT(*)
+        FROM registration
+        WHERE event_id = #{eventId} AND checkin_time IS NOT NULL
+    </select>
+
+    <!-- 应检录人数：有效报名数 -->
+    <select id="countActiveByEvent" resultType="int">
+        SELECT COUNT(*)
+        FROM registration
+        WHERE event_id = #{eventId} AND status = 1
+    </select>
+
+    <!-- 现场按号码布核销：号码布为空的不匹配 -->
+    <select id="selectIdByBib" resultType="java.lang.Long">
+        SELECT id
+        FROM registration
+        WHERE bib_number = #{bibNumber}
+        LIMIT 1
+    </select>
+
+</mapper>

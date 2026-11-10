@@ -1,0 +1,2101 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "springboot_01_marathon 接口文档",
+    "description": "马拉松赛事管理系统。26 个接口，除登录外全部需要 Token。\n\n**⚠️ 最常见问题**：登录成功后调其他接口报 code=40100，是因为没带 Authorization 请求头。每个请求都要重新带一次，ApiFox不会自动携带。\n四种传递方式均已实测通过：\n1. Header: Authorization: Bearer {token}（推荐）\n2. Header: Authorization: {token}（裸 token 也行）\n3. Query: ?token={token}\n4. 最省心：登录接口配后置脚本 pm.environment.set(\"token\", body.data.token)，其他接口 Headers 写 Bearer {{token}}\n\n**Token 会失效**：存在服务端内存，服务重启后全部失效，需重新登录。\n\n**注意**：所有错误场景的 HTTP 状态码都是 200，错误在 body 的 code 字段里。\n错误码：200成功 / 400参数校验失败 / 40100未登录 / 40101账号密码错误 / 404资源不存在 / 500系统异常",
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "本地开发环境"
+    }
+  ],
+  "tags": [
+    {
+      "name": "认证",
+      "description": "登录、登出、当前用户"
+    },
+    {
+      "name": "赛事管理"
+    },
+    {
+      "name": "选手管理"
+    },
+    {
+      "name": "报名管理"
+    },
+    {
+      "name": "成绩管理"
+    },
+    {
+      "name": "统计"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "登录接口返回的 token。服务端内存存储，重启后失效。"
+      }
+    },
+    "schemas": {
+      "Result": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200,
+            "description": "200成功 400校验失败 40100未登录 40101账号密码错误 404不存在 500异常"
+          },
+          "msg": {
+            "type": "string",
+            "example": "操作成功"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "code",
+          "msg"
+        ]
+      },
+      "PageResult": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "example": 3,
+            "description": "总记录数"
+          },
+          "pages": {
+            "type": "integer",
+            "example": 1,
+            "description": "总页数=ceil(total/pageSize)"
+          },
+          "pageNum": {
+            "type": "integer",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "example": 10,
+            "description": "上限100，超出自动截断"
+          },
+          "list": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "LoginDTO": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "admin",
+            "description": "不能为空"
+          },
+          "password": {
+            "type": "string",
+            "example": "123456",
+            "description": "不能为空"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "LoginVO": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "61c326b6d1904a0d8e9257ff17c73d85"
+          },
+          "adminId": {
+            "type": "integer",
+            "example": 1
+          },
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "adminName": {
+            "type": "string",
+            "example": "系统管理员"
+          },
+          "loginTime": {
+            "type": "string",
+            "example": "2026-10-10 17:25:25"
+          }
+        }
+      },
+      "MarathonEvent": {
+        "type": "object",
+        "description": "registeredCount 由服务端强制置0，不用传",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "eventType": {
+            "type": "integer",
+            "example": 1,
+            "description": "1全程马拉松 2半程马拉松 3迷你跑"
+          },
+          "eventName": {
+            "type": "string",
+            "example": "2026西安国际马拉松"
+          },
+          "eventDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-15"
+          },
+          "startLocation": {
+            "type": "string",
+            "example": "西安大明宫国家遗址公园"
+          },
+          "distanceKm": {
+            "type": "number",
+            "format": "double",
+            "example": 42.2,
+            "description": "DECIMAL(5,1)"
+          },
+          "quota": {
+            "type": "integer",
+            "example": 10,
+            "description": "总名额"
+          },
+          "registeredCount": {
+            "type": "integer",
+            "example": 2,
+            "readOnly": true,
+            "description": "已报名人数，只读"
+          },
+          "remainQuota": {
+            "type": "integer",
+            "example": 8,
+            "readOnly": true,
+            "description": "剩余名额，Service计算"
+          },
+          "entryFee": {
+            "type": "number",
+            "example": 200.0
+          },
+          "status": {
+            "type": "integer",
+            "example": 0,
+            "description": "0报名中 1报名截止 2赛事已结束"
+          },
+          "createTime": {
+            "type": "string",
+            "example": "2026-10-05 23:21:11"
+          }
+        }
+      },
+      "EventVO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MarathonEvent"
+          }
+        ]
+      },
+      "Runner": {
+        "type": "object",
+        "required": [
+          "name",
+          "gender",
+          "idCard",
+          "phone",
+          "birthDate",
+          "emergencyContact"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string",
+            "example": "张三",
+            "description": "不能为空"
+          },
+          "gender": {
+            "type": "integer",
+            "example": 1,
+            "description": "1男 2女，必填"
+          },
+          "idCard": {
+            "type": "string",
+            "example": "610104199001011234",
+            "description": "必填，18位，末位可为X。表上有唯一索引"
+          },
+          "phone": {
+            "type": "string",
+            "example": "13800138000",
+            "description": "必填，1[3-9]开头11位"
+          },
+          "birthDate": {
+            "type": "string",
+            "format": "date",
+            "example": "1990-01-01",
+            "description": "必填，不能晚于今天，年龄需16~100岁"
+          },
+          "emergencyContact": {
+            "type": "string",
+            "example": "李四,13900139000",
+            "description": "必填"
+          },
+          "age": {
+            "type": "integer",
+            "example": 36,
+            "readOnly": true,
+            "description": "Service根据出生日期计算"
+          },
+          "createTime": {
+            "type": "string",
+            "example": "2026-10-05 23:21:11"
+          }
+        }
+      },
+      "Registration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "eventId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 4
+          },
+          "runnerId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 5
+          },
+          "bibNumber": {
+            "type": "string",
+            "example": "A0001",
+            "nullable": true
+          },
+          "registerTime": {
+            "type": "string",
+            "example": "2026-10-06 14:51:17"
+          },
+          "payStatus": {
+            "type": "integer",
+            "example": 0,
+            "description": "0未支付 1已支付"
+          },
+          "status": {
+            "type": "integer",
+            "example": 1,
+            "description": "1已报名 2已取消 3退赛"
+          }
+        }
+      },
+      "RegistrationVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 5
+          },
+          "eventId": {
+            "type": "integer",
+            "example": 4
+          },
+          "runnerId": {
+            "type": "integer",
+            "example": 8
+          },
+          "bibNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "registerTime": {
+            "type": "string"
+          },
+          "payStatus": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "runner": {
+            "type": "object",
+            "description": "嵌套：选手信息",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "gender": {
+                "type": "integer"
+              },
+              "phone": {
+                "type": "string"
+              }
+            }
+          },
+          "event": {
+            "type": "object",
+            "description": "嵌套：赛事信息",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "eventName": {
+                "type": "string"
+              },
+              "eventDate": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ResultRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "registrationId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "报名记录id，不是选手id"
+          },
+          "chipTime": {
+            "type": "integer",
+            "example": 12800,
+            "description": "枪声成绩（秒）"
+          },
+          "netTime": {
+            "type": "integer",
+            "example": 12550,
+            "description": "净成绩（秒）"
+          },
+          "finishStatus": {
+            "type": "integer",
+            "example": 1,
+            "description": "1完赛 2未完赛 3退赛"
+          },
+          "finishTime": {
+            "type": "string",
+            "example": "2026-11-15 10:29:10"
+          }
+        }
+      },
+      "RankVO": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "张三"
+          },
+          "bibNumber": {
+            "type": "string",
+            "example": "A0001"
+          },
+          "gender": {
+            "type": "integer",
+            "example": 1
+          },
+          "age": {
+            "type": "integer",
+            "example": 31
+          },
+          "netTime": {
+            "type": "integer",
+            "example": 12550,
+            "description": "净成绩秒数"
+          },
+          "netTimeStr": {
+            "type": "string",
+            "example": "03:29:10",
+            "description": "格式化时长"
+          }
+        }
+      },
+      "ResultVO": {
+        "type": "object",
+        "description": "注意：这里是扁平字段 runnerName，不是嵌套对象",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "registrationId": {
+            "type": "integer"
+          },
+          "chipTime": {
+            "type": "integer"
+          },
+          "netTime": {
+            "type": "integer"
+          },
+          "finishStatus": {
+            "type": "integer"
+          },
+          "finishTime": {
+            "type": "string"
+          },
+          "runnerName": {
+            "type": "string",
+            "example": "张三"
+          },
+          "bibNumber": {
+            "type": "string",
+            "example": "A0001"
+          }
+        }
+      },
+      "EventStatisticsVO": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "integer",
+            "example": 4
+          },
+          "eventName": {
+            "type": "string",
+            "example": "2026西安国际马拉松"
+          },
+          "totalRegister": {
+            "type": "integer",
+            "example": 2
+          },
+          "maleCount": {
+            "type": "integer",
+            "example": 2
+          },
+          "femaleCount": {
+            "type": "integer",
+            "example": 0
+          },
+          "finishCount": {
+            "type": "integer",
+            "example": 1
+          },
+          "unFinishCount": {
+            "type": "integer",
+            "example": 0
+          },
+          "retireCount": {
+            "type": "integer",
+            "example": 0
+          },
+          "finishRate": {
+            "type": "number",
+            "example": 50.0
+          },
+          "avgNetTime": {
+            "type": "integer",
+            "example": 12550
+          },
+          "avgNetTimeStr": {
+            "type": "string",
+            "example": "03:29:10"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/admin/login": {
+      "post": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "登录",
+        "description": "**唯一免 Token 的接口**。成功后务必把返回的 token 保存下来。\n\n后置脚本建议：\n```javascript\nvar body = pm.response.json();\nif (body.code === 200) pm.environment.set(\"token\", body.data.token);\n```",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDTO"
+              },
+              "examples": {
+                "成功": {
+                  "value": {
+                    "username": "admin",
+                    "password": "123456"
+                  }
+                },
+                "密码错误": {
+                  "value": {
+                    "username": "admin",
+                    "password": "wrong"
+                  }
+                },
+                "账号为空": {
+                  "value": {
+                    "username": "",
+                    "password": "123456"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "统一返回结构，注意错误时 HTTP 仍是 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "msg": {
+                      "type": "string",
+                      "example": "登录成功"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/LoginVO"
+                    }
+                  }
+                },
+                "examples": {
+                  "登录成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "登录成功",
+                      "data": {
+                        "token": "61c326b6d1904a0d8e9257ff17c73d85",
+                        "adminId": 1,
+                        "username": "admin",
+                        "adminName": "系统管理员",
+                        "loginTime": "2026-10-10 17:25:25"
+                      }
+                    }
+                  },
+                  "密码错误": {
+                    "value": {
+                      "code": 40101,
+                      "msg": "账号或密码错误",
+                      "data": null
+                    }
+                  },
+                  "账号为空": {
+                    "value": {
+                      "code": 400,
+                      "msg": "username 账号不能为空",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/logout": {
+      "post": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "退出登录",
+        "description": "⚠️ **副作用**：执行后 token 立即失效。测试套件里放最后一步。",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "已退出登录",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/info": {
+      "get": {
+        "tags": [
+          "认证"
+        ],
+        "summary": "查询当前登录人信息",
+        "description": "验证 token 是否有效",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "adminId": 1
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录（HTTP仍为200）",
+            "content": {
+              "application/json": {
+                "example": {
+                  "msg": "未登录或登录已过期，请重新登录",
+                  "code": 40100,
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/event/add": {
+      "post": {
+        "tags": [
+          "赛事管理"
+        ],
+        "summary": "新增赛事",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarathonEvent"
+              },
+              "example": {
+                "eventType": 1,
+                "eventName": "2026测试马拉松",
+                "eventDate": "2026-12-01",
+                "startLocation": "西安大明宫",
+                "distanceKm": 42.2,
+                "quota": 100,
+                "entryFee": 200.0,
+                "status": 0
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "id": 9
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/event/update": {
+      "put": {
+        "tags": [
+          "赛事管理"
+        ],
+        "summary": "修改赛事",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarathonEvent"
+              },
+              "example": {
+                "id": 4,
+                "eventName": "2026西安国际马拉松（改名）",
+                "quota": 200
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": null
+                    }
+                  },
+                  "名额不足": {
+                    "value": {
+                      "code": 500,
+                      "msg": "总名额不能小于已报名人数 2",
+                      "data": null
+                    }
+                  },
+                  "赛事已结束": {
+                    "value": {
+                      "code": 500,
+                      "msg": "赛事已结束，不允许修改",
+                      "data": null
+                    }
+                  },
+                  "id为空": {
+                    "value": {
+                      "code": 500,
+                      "msg": "赛事ID不能为空",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/event/list": {
+      "get": {
+        "tags": [
+          "赛事管理"
+        ],
+        "summary": "分页查询赛事",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "上限100，超出自动截断为100"
+          },
+          {
+            "name": "eventName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "赛事名模糊查询"
+          },
+          {
+            "name": "eventType",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "1全程 2半程 3迷你"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "0报名中 1截止 2已结束"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageResult"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "list": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/EventVO"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "total": 1,
+                    "pages": 1,
+                    "pageNum": 1,
+                    "pageSize": 10,
+                    "list": [
+                      {
+                        "id": 4,
+                        "eventName": "2026西安国际马拉松",
+                        "eventType": 1,
+                        "eventDate": "2026-11-15",
+                        "startLocation": "西安大明宫国家遗址公园",
+                        "distanceKm": 42.2,
+                        "quota": 10,
+                        "registeredCount": 2,
+                        "remainQuota": 8,
+                        "entryFee": 200.0,
+                        "status": 0,
+                        "createTime": "2026-10-05 23:21:11"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/event/detail/{id}": {
+      "get": {
+        "tags": [
+          "赛事管理"
+        ],
+        "summary": "赛事详情",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": {
+                        "id": 4,
+                        "eventName": "2026西安国际马拉松",
+                        "eventType": 1,
+                        "eventDate": "2026-11-15",
+                        "startLocation": "西安大明宫国家遗址公园",
+                        "distanceKm": 42.2,
+                        "quota": 10,
+                        "registeredCount": 2,
+                        "remainQuota": 8,
+                        "entryFee": 200.0,
+                        "status": 0,
+                        "createTime": "2026-10-05 23:21:11"
+                      }
+                    }
+                  },
+                  "不存在": {
+                    "value": {
+                      "code": 404,
+                      "msg": "赛事不存在",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/event/delete/{id}": {
+      "delete": {
+        "tags": [
+          "赛事管理"
+        ],
+        "summary": "删除赛事",
+        "description": "⚠️ 危险操作。建议先 add 建测试赛事再删，别删 id=4",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runner/add": {
+      "post": {
+        "tags": [
+          "选手管理"
+        ],
+        "summary": "新增选手",
+        "description": "校验很严格。⚠️ 身份证表上有唯一索引，每次测试必须用不同的 idCard，否则返回「身份证号已存在，请勿重复录入」",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Runner"
+              },
+              "examples": {
+                "正常": {
+                  "value": {
+                    "name": "张三",
+                    "gender": 1,
+                    "idCard": "610104199001011234",
+                    "phone": "13800138000",
+                    "birthDate": "1990-01-01",
+                    "emergencyContact": "李四,13900139000"
+                  }
+                },
+                "身份证格式错误": {
+                  "value": {
+                    "name": "测试",
+                    "gender": 1,
+                    "idCard": "123",
+                    "phone": "13800138000",
+                    "birthDate": "1990-01-01",
+                    "emergencyContact": "张三"
+                  }
+                },
+                "手机号格式错误": {
+                  "value": {
+                    "name": "测试",
+                    "gender": 1,
+                    "idCard": "610104199001011234",
+                    "phone": "123",
+                    "birthDate": "1990-01-01",
+                    "emergencyContact": "张三"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": {
+                        "id": 15
+                      }
+                    }
+                  },
+                  "身份证格式错误": {
+                    "value": {
+                      "code": 400,
+                      "msg": "idCard 身份证号格式不正确",
+                      "data": null
+                    }
+                  },
+                  "手机号格式错误": {
+                    "value": {
+                      "code": 400,
+                      "msg": "phone 手机号格式不正确",
+                      "data": null
+                    }
+                  },
+                  "姓名���空": {
+                    "value": {
+                      "code": 400,
+                      "msg": "name 姓名不能为空",
+                      "data": null
+                    }
+                  },
+                  "性别非法": {
+                    "value": {
+                      "code": 500,
+                      "msg": "性别只能是 1男 2女",
+                      "data": null
+                    }
+                  },
+                  "身份证重复": {
+                    "value": {
+                      "code": 500,
+                      "msg": "身份证号已存在，请勿重复录入",
+                      "data": null
+                    }
+                  },
+                  "年龄不足": {
+                    "value": {
+                      "code": 500,
+                      "msg": "参赛年龄不得低于 16 周岁，当前 10岁",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runner/update": {
+      "put": {
+        "tags": [
+          "选手管理"
+        ],
+        "summary": "修改选手",
+        "description": "只需传要改的字段。注意修改时 birthDate 不做年龄校验（只有新增才校验）",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Runner"
+              },
+              "example": {
+                "id": 5,
+                "phone": "13911112222",
+                "emergencyContact": "王五,13700137000"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": null
+                    }
+                  },
+                  "id为空": {
+                    "value": {
+                      "code": 500,
+                      "msg": "选手ID不能为空",
+                      "data": null
+                    }
+                  },
+                  "不存在": {
+                    "value": {
+                      "code": 404,
+                      "msg": "选手不存在",
+                      "data": null
+                    }
+                  },
+                  "身份证被占用": {
+                    "value": {
+                      "code": 500,
+                      "msg": "身份证号已被其他选手使用",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runner/list": {
+      "get": {
+        "tags": [
+          "选手管理"
+        ],
+        "summary": "分页查询选手",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "姓名模糊"
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "手机号模糊"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "total": 4,
+                    "pages": 1,
+                    "pageNum": 1,
+                    "pageSize": 10,
+                    "list": [
+                      {
+                        "id": 8,
+                        "name": "张五",
+                        "gender": 1,
+                        "idCard": "610104198808083458",
+                        "phone": "13900139000",
+                        "birthDate": "1988-08-08",
+                        "emergencyContact": "李五,13700137000",
+                        "createTime": "2026-10-06 14:45:40",
+                        "age": 38
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runner/detail/{id}": {
+      "get": {
+        "tags": [
+          "选手管理"
+        ],
+        "summary": "选手详情",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": {
+                        "id": 5,
+                        "name": "张三",
+                        "gender": 1,
+                        "idCard": "610104199503101234",
+                        "phone": "13800138000",
+                        "birthDate": "1995-03-10",
+                        "emergencyContact": "李四,13900139000",
+                        "createTime": "2026-10-05 23:21:11",
+                        "age": 31
+                      }
+                    }
+                  },
+                  "不存在": {
+                    "value": {
+                      "code": 404,
+                      "msg": "选手不存在",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runner/delete/{id}": {
+      "delete": {
+        "tags": [
+          "选手管理"
+        ],
+        "summary": "删除选手",
+        "description": "⚠️ id=5~8 都有报名记录，删会失败。这是测外键约束的好用例",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功或业务失败",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": null
+                    }
+                  },
+                  "有报名记录": {
+                    "value": {
+                      "code": 500,
+                      "msg": "该选手还有 1 条有效报名，无法删除。请先到「报名管理」中取消报名",
+                      "data": null
+                    }
+                  },
+                  "不存在": {
+                    "value": {
+                      "code": 404,
+                      "msg": "选手不存在",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register/submit": {
+      "post": {
+        "tags": [
+          "报名管理"
+        ],
+        "summary": "提交报名",
+        "description": "⚠️ 会增加赛事的 registeredCount",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "eventId": {
+                    "type": "integer",
+                    "format": "int64",
+                    "example": 4
+                  },
+                  "runnerId": {
+                    "type": "integer",
+                    "format": "int64",
+                    "example": 5
+                  }
+                }
+              },
+              "example": {
+                "eventId": 4,
+                "runnerId": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": {
+                        "registrationId": 7
+                      }
+                    }
+                  },
+                  "赛事不存在": {
+                    "value": {
+                      "code": 404,
+                      "msg": "赛事不存在",
+                      "data": null
+                    }
+                  },
+                  "重复报名": {
+                    "value": {
+                      "code": 500,
+                      "msg": "该选手已报名该赛事",
+                      "data": null
+                    }
+                  },
+                  "名额已满": {
+                    "value": {
+                      "code": 500,
+                      "msg": "报名人数已达上限",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register/cancel": {
+      "post": {
+        "tags": [
+          "报名管理"
+        ],
+        "summary": "取消报名",
+        "description": "物理删除报名记录，同时释放号码布、减少赛事 registeredCount",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "报名记录id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "报名已取消，号码布已释放",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register/bib": {
+      "put": {
+        "tags": [
+          "报名管理"
+        ],
+        "summary": "分配号码布",
+        "description": "⚠️ 是 PUT + 查询参数，不是 JSON body",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "bibNumber",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "A0001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": "A0001"
+                    }
+                  },
+                  "号码布被占用": {
+                    "value": {
+                      "code": 500,
+                      "msg": "号码布已被占用",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "报名管理"
+        ],
+        "summary": "清空号码布",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "号码布已清空",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register/list": {
+      "get": {
+        "tags": [
+          "报名管理"
+        ],
+        "summary": "分页查询报名名单",
+        "description": "返回嵌套 VO，含 runner 和 event 子对象",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "选手姓名模糊"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "total": 3,
+                    "pages": 1,
+                    "pageNum": 1,
+                    "pageSize": 10,
+                    "list": [
+                      {
+                        "id": 5,
+                        "eventId": 4,
+                        "runnerId": 8,
+                        "bibNumber": null,
+                        "registerTime": "2026-10-06 14:51:17",
+                        "payStatus": 0,
+                        "status": 1,
+                        "runner": {
+                          "id": 8,
+                          "name": "张五",
+                          "gender": 1,
+                          "phone": "13900139000"
+                        },
+                        "event": {
+                          "id": 4,
+                          "eventName": "2026西安国际马拉松",
+                          "eventDate": "2026-11-15"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/register/detail/{id}": {
+      "get": {
+        "tags": [
+          "报名管理"
+        ],
+        "summary": "报名详情",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/RegistrationVO"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/result/input": {
+      "post": {
+        "tags": [
+          "成绩管理"
+        ],
+        "summary": "录入成绩",
+        "description": "⚠️ registrationId 是报名记录id，不是选手id。同一条报名不能重复录入成绩",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResultRecord"
+              },
+              "example": {
+                "registrationId": 2,
+                "chipTime": 12800,
+                "netTime": 12550,
+                "finishStatus": 1,
+                "finishTime": "2026-11-15 10:29:10"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "成功": {
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "data": {
+                        "id": 2
+                      }
+                    }
+                  },
+                  "重复录入": {
+                    "value": {
+                      "code": 500,
+                      "msg": "该报名记录已录入过成绩，不允许重复录入",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/result/update": {
+      "put": {
+        "tags": [
+          "成绩管理"
+        ],
+        "summary": "修改成绩",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResultRecord"
+              },
+              "example": {
+                "id": 2,
+                "chipTime": 12900,
+                "netTime": 12600,
+                "finishStatus": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/result/eventRanking/{eventId}": {
+      "get": {
+        "tags": [
+          "成绩管理"
+        ],
+        "summary": "赛事总排名",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageResult"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "list": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/RankVO"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "total": 1,
+                    "pages": 1,
+                    "pageNum": 1,
+                    "pageSize": 10,
+                    "list": [
+                      {
+                        "rank": 1,
+                        "name": "张三",
+                        "bibNumber": "A0001",
+                        "gender": 1,
+                        "age": 31,
+                        "netTime": 12550,
+                        "netTimeStr": "03:29:10"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/result/genderRanking/{eventId}": {
+      "get": {
+        "tags": [
+          "成绩管理"
+        ],
+        "summary": "男女分组排名",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "maleList": [
+                      {
+                        "rank": 1,
+                        "name": "张三",
+                        "bibNumber": "A0001",
+                        "gender": 1,
+                        "age": 31,
+                        "netTime": 12550,
+                        "netTimeStr": "03:29:10"
+                      }
+                    ],
+                    "femaleList": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/result/ageRanking/{eventId}": {
+      "get": {
+        "tags": [
+          "成绩管理"
+        ],
+        "summary": "年龄分组排名",
+        "description": "分组 key：group_29below / group_30_39 / group_40_49 / group_50up",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "group_29below": [],
+                    "group_30_39": [
+                      {
+                        "rank": 1,
+                        "name": "张三",
+                        "bibNumber": "A0001",
+                        "gender": 1,
+                        "age": 31,
+                        "netTime": 12550,
+                        "netTimeStr": "03:29:10"
+                      }
+                    ],
+                    "group_40_49": [],
+                    "group_50up": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/result/list": {
+      "get": {
+        "tags": [
+          "成绩管理"
+        ],
+        "summary": "分页查询成绩",
+        "description": "注意：返回扁平字段 runnerName，不是嵌套对象（与报名接口不同）",
+        "parameters": [
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "选手姓名"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "total": 1,
+                    "pages": 1,
+                    "pageNum": 1,
+                    "pageSize": 10,
+                    "list": [
+                      {
+                        "id": 2,
+                        "registrationId": 2,
+                        "chipTime": 12800,
+                        "netTime": 12550,
+                        "finishStatus": 1,
+                        "finishTime": "2026-11-15 10:29:10",
+                        "runnerName": "张三",
+                        "bibNumber": "A0001"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/statistics/eventOverview/{eventId}": {
+      "get": {
+        "tags": [
+          "统计"
+        ],
+        "summary": "赛事统计总览",
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/EventStatisticsVO"
+                    }
+                  }
+                },
+                "example": {
+                  "code": 200,
+                  "msg": "操作成功",
+                  "data": {
+                    "eventId": 4,
+                    "eventName": "2026西安国际马拉松",
+                    "totalRegister": 2,
+                    "maleCount": 2,
+                    "femaleCount": 0,
+                    "finishCount": 1,
+                    "unFinishCount": 0,
+                    "retireCount": 0,
+                    "finishRate": 50.0,
+                    "avgNetTime": 12550,
+                    "avgNetTimeStr": "03:29:10"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}
